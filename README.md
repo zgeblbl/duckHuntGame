@@ -1,5 +1,8 @@
 # DUCK HUNT GAME
+
+
 ![image](https://github.com/zgeblbl/duckHuntGame/assets/117914215/e2f04f86-2ed4-4686-a679-ad5967bd4161)
+
 Welcome to the Duck Hunt inspired 6-level game repository! This project provides a user interface for a 2d javaFX game, offering a set of customizable backgrounds and crosshairs to enhance the gaming experience.
 ## Features
 
@@ -8,6 +11,10 @@ Welcome to the Duck Hunt inspired 6-level game repository! This project provides
 
 - Start the game as the intro music finishes.
 - Ducks get flipped as they fly across the screen, they fall and die in the same direction when hit.
+
+https://github.com/zgeblbl/duckHuntGame/assets/117914215/cd97a1b1-1e71-45fb-a510-071787acdc21
+
+
 - Overlapping ducks can get hit with one bullet.
 - Ammo is limited, if there are 0 bullets left but remaining ducks, game is lost.
 - There are 5 levels with different types and amounts of ducks.
