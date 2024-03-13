@@ -11,7 +11,7 @@ https://github.com/zgeblbl/duckHuntGame/assets/117914215/2884abcc-5334-4294-913a
 
 ## Features
 
-- In the menu scene pick a backgroound and crosshair to your liking.
+- In the menu scene pick a background and crosshair to your liking.
 
 https://github.com/zgeblbl/duckHuntGame/assets/117914215/31c76c50-8bf4-42f4-a82d-a9ee88c25d69
 
@@ -22,7 +22,7 @@ https://github.com/zgeblbl/duckHuntGame/assets/117914215/31c76c50-8bf4-42f4-a82d
 
 https://github.com/zgeblbl/duckHuntGame/assets/117914215/c831dea7-31fe-4dfc-a971-5ed93c45f8e8
 
-- There are 5 levels with different types and amounts of ducks.
+- There are 6 levels with different types and amounts of ducks.
 - There are 3 types of ducks which can fly on the x axis or diagonally.
 - After level 6, player may restart or quit game.
 
