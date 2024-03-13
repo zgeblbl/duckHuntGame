@@ -1,0 +1,2521 @@
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.stage.Stage;
+import java.net.URL;
+import java.util.ArrayList;
+public class DuckHunt extends Application {
+    static Image backgroundImage = new Image("assets/welcome/1.png");
+    static double width = backgroundImage.getWidth();
+    static double height = backgroundImage.getHeight();
+    private static final double SCALE = 4.0;
+    public static double getScale() {
+        return SCALE;
+    }
+    ImageView cursor;
+    public static MediaPlayer titleMedia;
+    public static final double VOLUME = 0.025;
+    public static ArrayList<ImageView> crosshairs = new ArrayList<>();
+    public static ArrayList<String> backgroundPaths = new ArrayList<>();
+    URL resource = getClass().getResource("assets/effects/Title.mp3");
+    {
+        assert resource != null;
+        titleMedia = new MediaPlayer(new Media(resource.toString()));
+    }
+    public void start(Stage primaryStage) {
+        double scale = DuckHunt.getScale();
+        for (int i = 1; i < 7; i++) {
+            String path = "assets/background/" + i + ".png";
+            backgroundPaths.add(path);
+        }
+        for (int i = 1; i < 8; i++) {
+            String path = "assets/crosshair/" + i + ".png";
+            cursor = new ImageView(path);
+            cursor.setFitWidth(cursor.getImage().getWidth() * scale);
+            cursor.setFitHeight(cursor.getImage().getHeight() * scale);
+            cursor.setLayoutX(width*scale/2);
+            cursor.setLayoutY(height*scale/2);
+            crosshairs.add(cursor);
+        }
+        StackPane titleRoot = titleClass.titleSetter(scale);
+        Scene titleScene = new Scene(titleRoot, DuckHunt.width*scale, DuckHunt.height*scale);
+        primaryStage.setScene(titleScene);
+        titleClass titleScn = new titleClass();
+        titleScn.start(primaryStage, titleScene, scale);
+        primaryStage.getIcons().add(new Image("assets/favicon/1.png"));
+        primaryStage.setTitle("HUBBM Duck Hunt");
+        primaryStage.show();
+    }
+    public static void main(String[] args){
+        launch(args);
+    }
+}
+
+
+
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.scene.Cursor;
+import javafx.scene.Scene;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+public class titleClass {
+    static Text beginningText;
+    public static StackPane titleSetter(double scale){
+        String backgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        StackPane root = new StackPane();
+        root.setStyle("-fx-background-image: url('assets/welcome/1.png');" + "-fx-background-size: " + backgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+        beginningText = new Text(0, 0, "PRESS ENTER TO START\nPRESS ESC TO EXIT");
+        beginningText.setFont(Font.font("Arial", FontWeight.BOLD, 13*scale));
+        beginningText.setFill(Color.ORANGE);
+        beginningText.setTextAlignment(TextAlignment.CENTER);
+        VBox vbox = new VBox();
+        vbox.getChildren().add(beginningText);
+        vbox.setPadding(new Insets(150 * scale, ((DuckHunt.width*scale)-vbox.getWidth())/2, 30 * scale, ((DuckHunt.width*scale)-vbox.getWidth())/2));
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.5), evt -> vbox.setVisible(false)),
+                new KeyFrame(Duration.seconds(1.2), evt -> vbox.setVisible(true)));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        timeline.play();
+        DuckHunt.titleMedia.setOnEndOfMedia(new Runnable() {
+            public void run() {
+                DuckHunt.titleMedia.seek(Duration.ZERO);
+            }
+        });
+        DuckHunt.titleMedia.setVolume(DuckHunt.VOLUME);
+        DuckHunt.titleMedia.play();
+        MediaView media = new MediaView(DuckHunt.titleMedia);
+        root.getChildren().addAll(vbox, media);
+        return root;
+    }
+    public void start(Stage primaryStage, Scene titleScene, double scale){
+        titleScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            public void handle(KeyEvent event) {
+                switch (event.getCode()) {
+                    case ENTER:
+                        StackPane menuRoot = menuClass.menuSetter(scale);
+                        Scene menuScene = new Scene(menuRoot, DuckHunt.width*scale, DuckHunt.height*scale);
+                        menuScene.setCursor(Cursor.DEFAULT);
+                        primaryStage.setScene(menuScene);
+                        menuClass menuSceneClass = new menuClass();
+                        menuClass.menuIsOver=false;
+                        menuSceneClass.start(primaryStage, scale, menuScene, menuRoot);
+                        break;
+                    case ESCAPE:
+                        primaryStage.close();
+                        break;
+                }
+            }
+        });
+    }
+}
+
+
+
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import java.net.URL;
+import java.util.ArrayList;
+
+public class menuClass {
+    static Text menuText;
+    static ImageView menuCursor;
+    static Image selectedCursor;
+    static String selectedBackgroundPath;
+    static ImageView foreground;
+    static int backgroundNumber, cursorNumber = 0;
+    static boolean backgroundChanged, cursorChanged = false;
+    static MediaPlayer introMedia;
+    public static boolean menuIsOver = false;
+    URL introResource = getClass().getResource("assets/effects/Intro.mp3");
+    {
+        assert introResource != null;
+        introMedia = new MediaPlayer(new Media(introResource.toString()));
+    }
+    static MediaView menuMediaView = new MediaView(introMedia);
+    public static String backgroundChanger(ArrayList<String> backgroundPaths, int new_backgroundNumber, boolean backgroundChanged) {
+        if (backgroundChanged) {
+            return backgroundPaths.get(new_backgroundNumber);
+        }else{
+            return backgroundPaths.get(0);
+        }
+    }
+    public static ImageView cursorChanger(ArrayList<ImageView> crosshairs, int new_cursorNumber, boolean cursorChanged){
+        if (cursorChanged){
+            return crosshairs.get(new_cursorNumber);
+        }else{
+            return crosshairs.get(0);
+        }
+    }
+    public static StackPane menuSetter(double scale){
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        String backgroundPath = "assets/background/1.png";
+        StackPane menu = new StackPane();
+        menu.setStyle("-fx-background-image: url('" + backgroundPath + "');" + "-fx-background-size: " + menuBackgroundSize
+                + ";" + "-fx-background-repeat: no-repeat;");
+        menuText = new Text(0, 0, "USE ARROW KEYS TO NAVIGATE\nPRESS ENTER TO START\nPRESS ESC TO EXIT");
+        menuText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        menuText.setFill(Color.ORANGE);
+        menuText.setTextAlignment(TextAlignment.CENTER);
+        VBox menuVBox = new VBox();
+        menuVBox.getChildren().add(menuText);
+        menuVBox.setPadding(new Insets(20 * scale, 50*scale, 30 * scale, 67*scale));
+        menuCursor = new ImageView("assets/crosshair/1.png");
+        menuCursor.setFitWidth(menuCursor.getImage().getWidth() * scale);
+        menuCursor.setFitHeight(menuCursor.getImage().getHeight() * scale);
+        menuCursor.setX(DuckHunt.width*scale/2);
+        menuCursor.setY(DuckHunt.height*scale/2);
+        menu.getChildren().addAll(menuVBox, menuCursor, menuMediaView);
+        return menu;
+    }
+
+    public void start(Stage primaryStage, double scale, Scene menuScene, StackPane menu){
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        menuScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (!menuIsOver){
+                    switch (event.getCode()) {
+                        case ENTER:
+                            menuIsOver = true;
+                            selectedCursor = cursorChanger(DuckHunt.crosshairs, cursorNumber, cursorChanged).getImage();
+                            selectedBackgroundPath = backgroundChanger(DuckHunt.backgroundPaths, backgroundNumber, backgroundChanged);
+                            String path = "assets/foreground/" + (backgroundNumber+1) + ".png";
+                            foreground = new ImageView(path);
+                            foreground.setFitWidth(foreground.getImage().getWidth() * scale);
+                            foreground.setFitHeight(foreground.getImage().getHeight() * scale);
+                            DuckHunt.titleMedia.stop();
+                            introMedia.setVolume(DuckHunt.VOLUME);
+                            introMedia.play();
+                            introMedia.setOnEndOfMedia(() -> {
+                                StackPane root = gameSceneClass.gameSetter(scale);
+                                Scene gameScene = new Scene(root, DuckHunt.width*scale, DuckHunt.height*scale);
+                                gameScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                                primaryStage.setScene(gameScene);
+                                gameSceneClass gameScene1 = new gameSceneClass();
+                                gameScene1.start(primaryStage, gameScene, scale, root);
+                            });
+                            break;
+                        case UP:
+                            if (cursorNumber == 6) {
+                                menu.getChildren().remove(DuckHunt.crosshairs.get(6));
+                                menu.getChildren().add(DuckHunt.crosshairs.get(0));
+                                cursorNumber = 0;
+                            } else {
+                                menu.getChildren().remove(DuckHunt.crosshairs.get(cursorNumber));
+                                menu.getChildren().add(DuckHunt.crosshairs.get(cursorNumber + 1));
+                                cursorNumber++;
+                            }
+                            cursorChanged=true;
+                            break;
+                        case DOWN:
+                            if (cursorNumber == 0) {
+                                menu.getChildren().remove(DuckHunt.crosshairs.get(0));
+                                menu.getChildren().add(DuckHunt.crosshairs.get(6));
+                                cursorNumber = 6;
+                            } else {
+                                menu.getChildren().remove(DuckHunt.crosshairs.get(cursorNumber));
+                                menu.getChildren().add(DuckHunt.crosshairs.get(cursorNumber - 1));
+                                cursorNumber--;
+                            }
+                            cursorChanged=true;
+                            break;
+                        case RIGHT:
+                            if (backgroundNumber == 5) {
+                                String backgroundPath = DuckHunt.backgroundPaths.get(0);
+                                menu.setStyle("-fx-background-image: url('" + backgroundPath + "');" + "-fx-background-size: "
+                                        + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+                                backgroundNumber = 0;
+                            } else {
+                                String backgroundPath = DuckHunt.backgroundPaths.get((backgroundNumber + 1));
+                                menu.setStyle("-fx-background-image: url('" + backgroundPath + "');" + "-fx-background-size: "
+                                        + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+                                backgroundNumber++;
+                            }
+                            backgroundChanged = true;
+                            break;
+                        case LEFT:
+                            if (backgroundNumber == 0) {
+                                String backgroundPath = DuckHunt.backgroundPaths.get(5);
+                                menu.setStyle("-fx-background-image: url('" + backgroundPath + "');" + "-fx-background-size: "
+                                        + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+                                backgroundNumber = 5;
+                            } else {
+                                String backgroundPath = DuckHunt.backgroundPaths.get((backgroundNumber - 1));
+                                menu.setStyle("-fx-background-image: url('" + backgroundPath + "');" + "-fx-background-size: "
+                                        + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+                                backgroundNumber--;
+                            }
+                            backgroundChanged = true;
+                            break;
+                        case ESCAPE:
+                            StackPane titleRoot = titleClass.titleSetter(scale);
+                            Scene titleScene = new Scene(titleRoot, DuckHunt.width*scale, DuckHunt.height*scale);
+                            titleScene.setCursor(Cursor.DEFAULT);
+                            primaryStage.setScene(titleScene);
+                            titleClass titleScn = new titleClass();
+                            titleScn.start(primaryStage, titleScene, scale);
+                            break;
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import java.net.URL;
+import java.util.Objects;
+
+public class gameSceneClass {
+    private static Text ammoText, levelText, gOverText1, gOverText2, youWin, youWin2;
+    private static int duck=1, ammo = duck*3, level = 1;
+    URL bulletResource = getClass().getResource("assets/effects/Gunshot.mp3");
+    URL gOverResource = getClass().getResource("assets/effects/GameOver.mp3");
+    URL fallingResource = getClass().getResource("assets/effects/DuckFalls.mp3");
+    URL levelWonResource = getClass().getResource("assets/effects/LevelCompleted.mp3");
+    private static MediaPlayer bulletMedia, gOverMedia, fallingMedia, levelWonMedia;
+    private static boolean gameOver, gameWon, duckIsFlipped = false;
+    private static ImageView duckImageView = new ImageView();
+    private static Timeline flyingTimeline, fallingTimeline;
+    {
+        assert bulletResource != null;
+        bulletMedia = new MediaPlayer(new Media(bulletResource.toString()));
+        assert gOverResource != null;
+        gOverMedia = new MediaPlayer(new Media(gOverResource.toString()));
+        assert fallingResource != null;
+        fallingMedia = new MediaPlayer(new Media(fallingResource.toString()));
+        assert levelWonResource != null;
+        levelWonMedia = new MediaPlayer(new Media(levelWonResource.toString()));
+    }
+    private static final MediaView bulletMediaView = new MediaView(bulletMedia);
+    public static StackPane gameSetter(double scale){
+        duck = 1;
+        ammo = duck*3;
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        StackPane game = new StackPane();
+        game.setStyle("-fx-background-image: url('" + menuClass.selectedBackgroundPath + "');" + "-fx-background-size: "
+                + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+        ammoText = new Text(0, 0, "Ammo Left: " + ammo);
+        ammoText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        ammoText.setFill(Color.ORANGE);
+        levelText = new Text(0, 0, "Level " + level + "/6");
+        levelText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        levelText.setFill(Color.ORANGE);
+        VBox ammoVbox = new VBox();
+        ammoVbox.getChildren().add(ammoText);
+        ammoVbox.setPadding(new Insets(10 * scale, 33*scale, 30 * scale, 150 * scale));
+        ammoVbox.setAlignment(Pos.TOP_RIGHT);
+        VBox levelVbox = new VBox();
+        levelVbox.getChildren().add(levelText);
+        levelVbox.setPadding(new Insets(10 * scale, 50 * scale, 30 * scale, 50 * scale));
+        levelVbox.setAlignment(Pos.TOP_CENTER);
+        String[] duckImagesFlying = {"assets/duck_black/4.png", "assets/duck_black/5.png", "assets/duck_black/6.png"};
+        Image duck = new Image("assets/duck_black/4.png");
+        double duckWidth = duck.getWidth()*scale;
+        double duckHeight = duck.getHeight()*scale;
+        Image[] duckImages = new Image[duckImagesFlying.length];
+        for (int i = 0; i < duckImagesFlying.length; i++) {
+            duckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(duckImagesFlying[i])));
+        }
+        duckImageView.setFitWidth(duckWidth);
+        duckImageView.setFitHeight(duckHeight);
+        duckImageView.setTranslateX(-duckWidth*scale);
+        duckImageView.setTranslateY(-67 * scale);
+        final int[] currentImageIndex = {0};
+        flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            duckImageView.setImage(duckImages[currentImageIndex[0]]);
+            currentImageIndex[0] = (currentImageIndex[0] + 1) % duckImagesFlying.length;
+            double initialX = -duckWidth*scale;
+            double finalX = duckWidth*scale;
+            double unitMove = 8*scale;
+            final double currentX = duckImageView.getTranslateX();
+            double newX = currentX + unitMove;
+            duckImageView.setScaleX(1);
+            if (newX <= finalX && !duckIsFlipped) {
+                duckImageView.setTranslateX(newX);
+            }else{
+                duckIsFlipped =true;
+                newX = currentX - unitMove;
+                duckImageView.setScaleX(-1);
+                duckImageView.setTranslateX(newX);
+                if (currentX<initialX){
+                    duckImageView.setScaleX(1);
+                    duckIsFlipped =false;
+                    duckImageView.setTranslateX(initialX);
+                }
+            }
+            })
+        );
+        flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        flyingTimeline.stop();
+        flyingTimeline.play();
+        if(fallingTimeline!=null){
+            fallingTimeline.stop();
+        }
+        game.getChildren().clear();
+        game.getChildren().addAll(bulletMediaView, ammoVbox, levelVbox, duckImageView, menuClass.foreground);
+        gameWon = false;
+        gameOver = false;
+        duckIsFlipped=false;
+        return game;
+    }
+    public void start(Stage primaryStage, Scene gameScene, double scale, StackPane game){
+        VBox gOverVbox1 = new VBox(), gOverVbox2 = new VBox(), youWinVbox1 = new VBox(), youWinVbox2 = new VBox();
+        gameScene.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (!gameOver && !gameWon && duck!=0) {
+                    bulletMedia.setVolume(DuckHunt.VOLUME);
+                    bulletMedia.stop();
+                    bulletMedia.play();
+                    ammo--;
+                    ammoText.setText("Ammo Left: " + ammo);
+                    double bulletX = event.getX();
+                    double bulletY = event.getY();
+                    Bounds boundsInParent = duckImageView.getBoundsInParent();
+                    double xMin = boundsInParent.getMinX();
+                    double xMax = boundsInParent.getMaxX();
+                    double yMax = boundsInParent.getMaxY();
+                    double yMin = boundsInParent.getMinY();
+                    if (bulletX <= xMax && xMin <= bulletX && bulletY <= yMax && yMin <= bulletY){
+                        duck--;
+                        flyingTimeline.stop();
+                        ImageView shotDuck = new ImageView("assets/duck_black/7.png");
+                        ImageView fallingDuck = new ImageView("assets/duck_black/8.png");
+                        if (duckIsFlipped){
+                            shotDuck.setScaleX(-1);
+                            fallingDuck.setScaleX(-1);
+                        }
+                        duckImageView.setImage(shotDuck.getImage());
+                        Timeline shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            duckImageView.setImage(fallingDuck.getImage());
+                        }));
+                        shotImageChange.play();
+                        shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = duckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                duckImageView.setTranslateY(newY);
+                            }));
+                            fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            fallingTimeline.play();
+                            fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                            if (duck==0){
+                                gameWon = true;
+                            }
+                            if (gameWon){
+                                youWin = new Text(0, 0, "YOU WIN!\n\n");
+                                youWin.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                                youWin.setFill(Color.ORANGE);
+                                youWin2 = new Text(0, 0, "\nPress ENTER to play next level");
+                                youWin2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                                youWin2.setFill(Color.ORANGE);
+                                youWin2.setTextAlignment(TextAlignment.CENTER);
+                                youWinVbox1.setAlignment(Pos.CENTER);
+                                youWinVbox2.setAlignment(Pos.CENTER);
+                                youWinVbox1.getChildren().addAll(youWin);
+                                youWinVbox2.getChildren().addAll(youWin2);
+                                Timeline flashingTimeline = new Timeline(
+                                        new KeyFrame(Duration.seconds(0.5), evt -> youWin2.setVisible(true)),
+                                        new KeyFrame(Duration.seconds(1.0), evt -> youWin2.setVisible(false))
+                                );
+                                flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                                flashingTimeline.play();
+                                game.getChildren().addAll(youWinVbox1, youWinVbox2);
+                                levelWonMedia.setVolume(DuckHunt.VOLUME);
+                                levelWonMedia.play();
+                            }
+                        });
+                    }
+                }
+                if (ammo == 0 && !gameWon && duck!=0) {
+                    gameOver = true;
+                    gOverVbox1.getChildren().clear();
+                    gOverVbox2.getChildren().clear();
+                    gOverText1 = new Text(0, 0, "GAME OVER!\n\n");
+                    gOverText1.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText1.setFill(Color.ORANGE);
+                    gOverText2 = new Text(0, 0, "\nPress ENTER to play again\nPress ESC to exit");
+                    gOverText2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText2.setFill(Color.ORANGE);
+                    gOverText2.setTextAlignment(TextAlignment.CENTER);
+                    gOverVbox1.setAlignment(Pos.CENTER);
+                    gOverVbox2.setAlignment(Pos.CENTER);
+                    gOverVbox1.getChildren().addAll(gOverText1);
+                    gOverVbox2.getChildren().addAll(gOverText2);
+                    Timeline flashingTimeline = new Timeline(
+                            new KeyFrame(Duration.seconds(0.5), evt -> gOverText2.setVisible(true)),
+                            new KeyFrame(Duration.seconds(1.0), evt -> gOverText2.setVisible(false))
+                    );
+                    flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                    flashingTimeline.play();
+                    game.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                    game.getChildren().addAll(gOverVbox1, gOverVbox2);
+                    gOverMedia.setVolume(DuckHunt.VOLUME);
+                    gOverMedia.play();
+                }
+            }
+        });
+        gameScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (Objects.requireNonNull(event.getCode()) == KeyCode.ENTER) {
+                    levelWonMedia.stop();
+                    if (gameOver) {
+                        gameOver = false;
+                        ammo = 3;
+                        ammoText.setText("Ammo Left: " + ammo);
+                        game.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                        primaryStage.setScene(gameScene);
+                        gameSceneClass gameScene1 = new gameSceneClass();
+                        gameScene1.start(primaryStage, gameScene, scale, game);
+                    } else if (gameWon) {
+                        fallingTimeline.stop();
+                        StackPane root2 = levelTwoClass.levelTwoSetter(scale);
+                        Scene levelTwoScene = new Scene(root2, DuckHunt.width * scale, DuckHunt.height * scale);
+                        levelTwoScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(levelTwoScene);
+                        levelTwoClass gameScene2 = new levelTwoClass();
+                        gameScene2.start(primaryStage, levelTwoScene, scale, root2);
+                    }
+                }if (Objects.requireNonNull(event.getCode()) == KeyCode.ESCAPE) {
+                    gOverMedia.stop();
+                    if (gameOver) {
+                        StackPane titleRoot = titleClass.titleSetter(scale);
+                        Scene titleScene = new Scene(titleRoot, DuckHunt.width * scale, DuckHunt.height * scale);
+                        titleScene.setCursor(Cursor.DEFAULT);
+                        primaryStage.setScene(titleScene);
+                        titleClass titleScn = new titleClass();
+                        titleScn.start(primaryStage, titleScene, scale);
+                    }
+                }
+            }
+        });
+    }
+
+}
+
+
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import java.net.URL;
+import java.util.Objects;
+
+public class levelTwoClass {
+    URL bulletResource = getClass().getResource("assets/effects/Gunshot.mp3");
+    URL gOverResource = getClass().getResource("assets/effects/GameOver.mp3");
+    URL fallingResource = getClass().getResource("assets/effects/DuckFalls.mp3");
+    URL levelWonResource = getClass().getResource("assets/effects/LevelCompleted.mp3");
+    private static MediaPlayer bulletMedia, gOverMedia, fallingMedia, levelWonMedia;
+    {
+        assert bulletResource != null;
+        bulletMedia = new MediaPlayer(new Media(bulletResource.toString()));
+        assert gOverResource != null;
+        gOverMedia = new MediaPlayer(new Media(gOverResource.toString()));
+        assert fallingResource != null;
+        fallingMedia = new MediaPlayer(new Media(fallingResource.toString()));
+        assert levelWonResource != null;
+        levelWonMedia = new MediaPlayer(new Media(levelWonResource.toString()));
+    }
+    static MediaView bulletMediaView = new MediaView(bulletMedia);
+    private static Text ammoText, levelText, gOverText1, gOverText2, youWin, youWin2;
+    private static ImageView duckImageView = new ImageView();
+    private static Timeline flyingTimeline, fallingTimeline;
+    private static boolean gameOver, gameWon, duckIsFlipped_x, duckIsFlipped_y = false;
+    private static int duck=1, ammo = duck*3, level = 2;
+    public static StackPane levelTwoSetter(double scale){
+        duck = 1;
+        ammo = duck*3;
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        StackPane levelTwo = new StackPane();
+        levelTwo.setStyle("-fx-background-image: url('" + menuClass.selectedBackgroundPath + "');" + "-fx-background-size: "
+                + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+        ammoText = new Text(0, 0, "Ammo Left: " + ammo);
+        ammoText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        ammoText.setFill(Color.ORANGE);
+        levelText = new Text(0, 0, "Level " + level + "/6");
+        levelText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        levelText.setFill(Color.ORANGE);
+        VBox ammoVbox = new VBox();
+        ammoVbox.getChildren().add(ammoText);
+        ammoVbox.setPadding(new Insets(10 * scale, 33*scale, 30 * scale, 150 * scale));
+        ammoVbox.setAlignment(Pos.TOP_RIGHT);
+        VBox levelVbox = new VBox();
+        levelVbox.getChildren().add(levelText);
+        levelVbox.setPadding(new Insets(10 * scale, 50 * scale, 30 * scale, 50 * scale));
+        levelVbox.setAlignment(Pos.TOP_CENTER);
+        String[] duckImagesFlying = {"assets/duck_blue/1.png", "assets/duck_blue/2.png", "assets/duck_blue/3.png"};
+        Image duck = new Image("assets/duck_blue/1.png");
+        double width = duck.getWidth()*scale;
+        double height = duck.getHeight()*scale;
+        Image[] duckImages = new Image[duckImagesFlying.length];
+        for (int i = 0; i < duckImagesFlying.length; i++) {
+            duckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(duckImagesFlying[i])));
+        }
+        duckImageView.setFitWidth(width);
+        duckImageView.setFitHeight(height);
+        duckImageView.setTranslateX(-width*scale);
+        duckImageView.setTranslateY(height*scale);
+        final int[] currentImageIndex = {0};
+        flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            duckImageView.setImage(duckImages[currentImageIndex[0]]);
+            currentImageIndex[0] = (currentImageIndex[0] + 1) % duckImagesFlying.length;
+            double initialX = -width*scale;
+            double finalX = width*scale;
+            double initialY = height*scale;
+            double finalY = -height*scale;
+            double unitMove = 8*scale;
+            final double currentX = duckImageView.getTranslateX();
+            final double currentY = duckImageView.getTranslateY();
+            double newX = currentX + unitMove;
+            double newY = currentY - unitMove;
+            duckImageView.setScaleX(1);
+            duckImageView.setScaleY(1);
+            if (newY >= finalY && !duckIsFlipped_y){
+                duckImageView.setTranslateY(newY);
+            }else{
+                duckIsFlipped_y =true;
+                newY = currentY + unitMove;
+                duckImageView.setScaleY(-1);
+                duckImageView.setTranslateY(newY);
+                if (currentY>initialY){
+                    duckImageView.setScaleY(1);
+                    duckIsFlipped_y =false;
+                    duckImageView.setTranslateY(initialY);
+                }
+            }
+            if (newX <= finalX && !duckIsFlipped_x) {
+                duckImageView.setTranslateX(newX);
+            }else{
+                duckIsFlipped_x =true;
+                newX = currentX - unitMove;
+                duckImageView.setScaleX(-1);
+                duckImageView.setTranslateX(newX);
+                if (currentX<initialX){
+                    duckImageView.setScaleX(1);
+                    duckIsFlipped_x =false;
+                    duckImageView.setTranslateX(initialX);
+                }
+            }
+        })
+        );
+        flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        flyingTimeline.stop();
+        flyingTimeline.play();
+        if(fallingTimeline!=null){
+            fallingTimeline.stop();
+        }
+        levelTwo.getChildren().clear();
+        levelTwo.getChildren().addAll(bulletMediaView, ammoVbox, levelVbox, duckImageView, menuClass.foreground);
+        gameWon = false;
+        gameOver = false;
+        duckIsFlipped_x=false;
+        duckIsFlipped_y=false;
+        return levelTwo;
+    }
+
+    public void start(Stage primaryStage, Scene levelTwoScene, double scale, StackPane levelTwo){
+        VBox gOverVbox1 = new VBox(), gOverVbox2 = new VBox(), youWinVbox1 = new VBox(), youWinVbox2 = new VBox();
+        levelTwoScene.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (!gameOver && !gameWon && duck!=0) {
+                    bulletMedia.stop();
+                    bulletMedia.setVolume(DuckHunt.VOLUME);
+                    bulletMedia.play();
+                    ammo--;
+                    ammoText.setText("Ammo Left: " + ammo);
+                    double bulletX = event.getX();
+                    double bulletY = event.getY();
+                    Bounds boundsInParent = duckImageView.getBoundsInParent();
+                    double xMin = boundsInParent.getMinX();
+                    double xMax = boundsInParent.getMaxX();
+                    double yMax = boundsInParent.getMaxY();
+                    double yMin = boundsInParent.getMinY();
+                    if (bulletX <= xMax && xMin <= bulletX && bulletY <= yMax && yMin <= bulletY){
+                        duck--;
+                        flyingTimeline.stop();
+                        ImageView shotDuck = new ImageView("assets/duck_blue/7.png");
+                        ImageView fallingDuck = new ImageView("assets/duck_blue/8.png");
+                        if (duckIsFlipped_x){
+                            shotDuck.setScaleX(-1);
+                            fallingDuck.setScaleX(-1);
+                        }
+                        duckImageView.setImage(shotDuck.getImage());
+                        Timeline shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            duckImageView.setImage(fallingDuck.getImage());
+                            if (duckIsFlipped_y){
+                                duckImageView.setScaleY(1);
+                            }
+                        }));
+                        shotImageChange.play();
+                        shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = duckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                duckImageView.setTranslateY(newY);
+                            }));
+                            fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            fallingTimeline.play();
+                            fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                            if (duck==0){
+                                gameWon = true;
+                            }
+                            if (gameWon){
+                                youWin = new Text(0, 0, "YOU WIN!\n\n");
+                                youWin.setFont(Font.font("Arial", FontWeight.BOLD, 30));
+                                youWin.setFill(Color.ORANGE);
+                                youWin2 = new Text(0, 0, "\nPress ENTER to play next level");
+                                youWin2.setFont(Font.font("Arial", FontWeight.BOLD, 30));
+                                youWin2.setFill(Color.ORANGE);
+                                youWin2.setTextAlignment(TextAlignment.CENTER);
+                                youWinVbox1.setAlignment(Pos.CENTER);
+                                youWinVbox2.setAlignment(Pos.CENTER);
+                                youWinVbox1.getChildren().addAll(youWin);
+                                youWinVbox2.getChildren().addAll(youWin2);
+                                Timeline flashingTimeline = new Timeline(
+                                        new KeyFrame(Duration.seconds(0.5), evt -> youWin2.setVisible(true)),
+                                        new KeyFrame(Duration.seconds(1.0), evt -> youWin2.setVisible(false))
+                                );
+                                flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                                flashingTimeline.play();
+                                levelTwo.getChildren().addAll(youWinVbox1, youWinVbox2);
+                                levelWonMedia.setVolume(DuckHunt.VOLUME);
+                                levelWonMedia.play();
+                            }
+                        });
+                    }
+                }
+                if (ammo == 0 && !gameWon && duck!=0) {
+                    gameOver = true;
+                    gOverVbox1.getChildren().clear();
+                    gOverVbox2.getChildren().clear();
+                    gOverText1 = new Text(0, 0, "GAME OVER!\n\n");
+                    gOverText1.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText1.setFill(Color.ORANGE);
+                    gOverText2 = new Text(0, 0, "\nPress ENTER to play again\nPress ESC to exit");
+                    gOverText2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText2.setFill(Color.ORANGE);
+                    gOverText2.setTextAlignment(TextAlignment.CENTER);
+                    gOverVbox1.setAlignment(Pos.CENTER);
+                    gOverVbox2.setAlignment(Pos.CENTER);
+                    gOverVbox1.getChildren().addAll(gOverText1);
+                    gOverVbox2.getChildren().addAll(gOverText2);
+                    Timeline flashingTimeline = new Timeline(
+                            new KeyFrame(Duration.seconds(0.5), evt -> gOverText2.setVisible(true)),
+                            new KeyFrame(Duration.seconds(1.0), evt -> gOverText2.setVisible(false))
+                    );
+                    flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                    flashingTimeline.play();
+                    levelTwo.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                    levelTwo.getChildren().addAll(gOverVbox1, gOverVbox2);
+                    gOverMedia.setVolume(DuckHunt.VOLUME);
+                    gOverMedia.play();
+                }
+            }
+        });
+        levelTwoScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (Objects.requireNonNull(event.getCode()) == KeyCode.ENTER) {
+                    levelWonMedia.stop();
+                    if (gameOver) {
+                        gameOver = false;
+                        ammo = 3;
+                        ammoText.setText("Ammo Left: " + ammo);
+                        levelTwo.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                        primaryStage.setScene(levelTwoScene);
+                        levelTwoClass levTwoScene = new levelTwoClass();
+                        levTwoScene.start(primaryStage, levelTwoScene, scale, levelTwo);
+                    } else if (gameWon) {
+                        fallingTimeline.stop();
+                        StackPane root3 = levelThreeClass.levelThreeSetter(scale);
+                        Scene levelThreeScene = new Scene(root3, DuckHunt.width * scale, DuckHunt.height * scale);
+                        levelThreeScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(levelThreeScene);
+                        levelThreeClass gameScene3 = new levelThreeClass();
+                        gameScene3.start(primaryStage, levelThreeScene, scale, root3);
+                    }
+                }if (Objects.requireNonNull(event.getCode()) == KeyCode.ESCAPE) {
+                    gOverMedia.stop();
+                    if (gameOver) {
+                        StackPane titleRoot = titleClass.titleSetter(scale);
+                        Scene titleScene = new Scene(titleRoot, DuckHunt.width * scale, DuckHunt.height * scale);
+                        titleScene.setCursor(Cursor.DEFAULT);
+                        primaryStage.setScene(titleScene);
+                        titleClass titleScn = new titleClass();
+                        titleScn.start(primaryStage, titleScene, scale);
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import java.net.URL;
+import java.util.Objects;
+
+public class levelThreeClass {
+    URL bulletResource = getClass().getResource("assets/effects/Gunshot.mp3");
+    URL gOverResource = getClass().getResource("assets/effects/GameOver.mp3");
+    URL fallingResource = getClass().getResource("assets/effects/DuckFalls.mp3");
+    URL levelWonResource = getClass().getResource("assets/effects/LevelCompleted.mp3");
+    private static MediaPlayer bulletMedia, gOverMedia, fallingMedia, levelWonMedia;
+    {
+        assert bulletResource != null;
+        bulletMedia = new MediaPlayer(new Media(bulletResource.toString()));
+        assert gOverResource != null;
+        gOverMedia = new MediaPlayer(new Media(gOverResource.toString()));
+        assert fallingResource != null;
+        fallingMedia = new MediaPlayer(new Media(fallingResource.toString()));
+        assert levelWonResource != null;
+        levelWonMedia = new MediaPlayer(new Media(levelWonResource.toString()));
+    }
+    static MediaView bulletMediaView = new MediaView(bulletMedia);
+    private static Text ammoText, levelText, gOverText1, gOverText2, youWin, youWin2;
+    private static ImageView blackDuckImageView = new ImageView(), blueDuckImageView = new ImageView();
+    private static Timeline black_flyingTimeline = new Timeline(), blue_flyingTimeline = new Timeline();
+    private static Timeline black_fallingTimeline = new Timeline(), blue_fallingTimeline = new Timeline();
+    private static boolean gameOver, gameWon, black_duckIsFlipped_x, blue_duckIsFlipped_x = false;
+    private static int duck=2, ammo = duck*3, level = 3;
+    public static StackPane levelThreeSetter(double scale){
+        duck = 2;
+        ammo = duck*3;
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        StackPane levelThree = new StackPane();
+        levelThree.setStyle("-fx-background-image: url('" + menuClass.selectedBackgroundPath + "');" + "-fx-background-size: "
+                + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+        ammoText = new Text(0, 0, "Ammo Left: " + ammo);
+        ammoText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        ammoText.setFill(Color.ORANGE);
+        levelText = new Text(0, 0, "Level " + level + "/6");
+        levelText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        levelText.setFill(Color.ORANGE);
+        VBox ammoVbox = new VBox();
+        ammoVbox.getChildren().add(ammoText);
+        ammoVbox.setPadding(new Insets(10 * scale, 30*scale, 30 * scale, 150 * scale));
+        ammoVbox.setAlignment(Pos.TOP_RIGHT);
+        VBox levelVbox = new VBox();
+        levelVbox.getChildren().add(levelText);
+        levelVbox.setPadding(new Insets(10 * scale, 50 * scale, 30 * scale, 50 * scale));
+        levelVbox.setAlignment(Pos.TOP_CENTER);
+        String[] duckImagesFlyingBlack = {"assets/duck_black/4.png", "assets/duck_black/5.png", "assets/duck_black/6.png"};
+        Image blackDuck = new Image("assets/duck_black/4.png");
+        double blackDuckWidth = blackDuck.getWidth()*scale;
+        double blackDuckHeight = blackDuck.getHeight()*scale;
+        Image[] blackDuckImages = new Image[duckImagesFlyingBlack.length];
+        for (int i = 0; i < duckImagesFlyingBlack.length; i++) {
+            blackDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(duckImagesFlyingBlack[i])));
+        }
+        blackDuckImageView.setFitWidth(blackDuckWidth);
+        blackDuckImageView.setFitHeight(blackDuckHeight);
+        blackDuckImageView.setTranslateX(-blackDuckWidth*scale);
+        blackDuckImageView.setTranslateY(-67 * scale);
+        blackDuckImageView.setScaleX(1);
+        blackDuckImageView.setScaleY(1);
+        String[] duckImagesFlyingBlue = {"assets/duck_blue/4.png", "assets/duck_blue/5.png", "assets/duck_blue/6.png"};
+        Image blueDuck = new Image("assets/duck_blue/4.png");
+        double blueDuckWidth = blueDuck.getWidth()*scale;
+        double blueDuckHeight = blueDuck.getHeight()*scale;
+        Image[] blueDuckImages = new Image[duckImagesFlyingBlue.length];
+        for (int i = 0; i < duckImagesFlyingBlue.length; i++) {
+            blueDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(duckImagesFlyingBlue[i])));
+        }
+        blueDuckImageView.setFitWidth(blueDuckWidth);
+        blueDuckImageView.setFitHeight(blueDuckHeight);
+        blueDuckImageView.setTranslateX(blueDuckWidth*scale);
+        blueDuckImageView.setTranslateY(-17*scale);
+        blueDuckImageView.setScaleX(1);
+        blueDuckImageView.setScaleY(1);
+        final int[] currentImageIndex = {0};
+        blue_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blueDuckImageView.setImage(blueDuckImages[currentImageIndex[0]]);
+            currentImageIndex[0] = (currentImageIndex[0] + 1) % duckImagesFlyingBlue.length;
+            double blue_initialX = blueDuckWidth*scale;
+            double blue_finalX = -blueDuckWidth*scale;
+            double unitMove = 8*scale;
+            final double blue_currentX = blueDuckImageView.getTranslateX();
+            double blue_newX = blue_currentX - unitMove;
+            blueDuckImageView.setScaleX(-1);
+            if (blue_newX >= blue_finalX && !blue_duckIsFlipped_x) {
+                blueDuckImageView.setTranslateX(blue_newX);
+            }else{
+                blue_duckIsFlipped_x =true;
+                blue_newX = blue_currentX + unitMove;
+                blueDuckImageView.setScaleX(1);
+                blueDuckImageView.setTranslateX(blue_newX);
+                if (blue_currentX>blue_initialX){
+                    blueDuckImageView.setScaleX(-1);
+                    blue_duckIsFlipped_x =false;
+                    blueDuckImageView.setTranslateX(blue_initialX);
+                }
+            }
+        })
+        );
+        black_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blackDuckImageView.setImage(blackDuckImages[currentImageIndex[0]]);
+            currentImageIndex[0] = (currentImageIndex[0] + 1) % duckImagesFlyingBlack.length;
+            double black_initialX = -blackDuckWidth*scale;
+            double black_finalX = blackDuckWidth*scale;
+            double unitMove = 8*scale;
+            final double black_currentX = blackDuckImageView.getTranslateX();
+            double black_newX = black_currentX + unitMove;
+            if (black_newX <= black_finalX && !black_duckIsFlipped_x) {
+                blackDuckImageView.setTranslateX(black_newX);
+            }else{
+                black_duckIsFlipped_x =true;
+                black_newX = black_currentX - unitMove;
+                blackDuckImageView.setScaleX(-1);
+                blackDuckImageView.setTranslateX(black_newX);
+                if (black_currentX<black_initialX){
+                    blackDuckImageView.setScaleX(1);
+                    black_duckIsFlipped_x =false;
+                    blackDuckImageView.setTranslateX(black_initialX);
+                }
+            }
+        })
+        );
+        black_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        blue_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        black_flyingTimeline.stop();
+        blue_flyingTimeline.stop();
+        black_flyingTimeline.play();
+        blue_flyingTimeline.play();
+        if(black_fallingTimeline!=null){
+            black_fallingTimeline.stop();
+        }if(blue_fallingTimeline!=null){
+            blue_fallingTimeline.stop();
+        }
+        levelThree.getChildren().clear();
+        levelThree.getChildren().addAll(bulletMediaView, ammoVbox, levelVbox, blackDuckImageView, blueDuckImageView, menuClass.foreground);
+        gameWon = false;
+        gameOver = false;
+        black_duckIsFlipped_x=false;
+        blue_duckIsFlipped_x=false;
+        return levelThree;
+    }
+    public void start(Stage primaryStage, Scene levelThreeScene, double scale, StackPane levelThree){
+        VBox gOverVbox1 = new VBox(), gOverVbox2 = new VBox(), youWinVbox1 = new VBox(), youWinVbox2 = new VBox();
+        levelThreeScene.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (!gameOver && !gameWon && duck!=0) {
+                    bulletMedia.stop();
+                    bulletMedia.setVolume(DuckHunt.VOLUME);
+                    bulletMedia.play();
+                    ammo--;
+                    ammoText.setText("Ammo Left: " + ammo);
+                    double bulletX = event.getX();
+                    double bulletY = event.getY();
+                    Bounds boundsInParentBlackDuck = blackDuckImageView.getBoundsInParent();
+                    double black_xMin = boundsInParentBlackDuck.getMinX();
+                    double black_xMax = boundsInParentBlackDuck.getMaxX();
+                    double black_yMax = boundsInParentBlackDuck.getMaxY();
+                    double black_yMin = boundsInParentBlackDuck.getMinY();
+                    if (bulletX <= black_xMax && black_xMin <= bulletX && bulletY <= black_yMax && black_yMin <= bulletY){
+                        duck--;
+                        black_flyingTimeline.stop();
+                        ImageView shotDuckBlack = new ImageView("assets/duck_black/7.png");
+                        ImageView fallingDuckBlack = new ImageView("assets/duck_black/8.png");
+                        if (black_duckIsFlipped_x){
+                            shotDuckBlack.setScaleX(-1);
+                            fallingDuckBlack.setScaleX(-1);
+                        }
+                        blackDuckImageView.setImage(shotDuckBlack.getImage());
+                        Timeline black_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blackDuckImageView.setImage(fallingDuckBlack.getImage());
+                        }));
+                        black_shotImageChange.play();
+                        black_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            black_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double black_currentY = blackDuckImageView.getTranslateY();
+                                double black_newY = black_currentY + unitMove;
+                                blackDuckImageView.setTranslateY(black_newY);
+                            }));
+                            black_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            black_fallingTimeline.play();
+                            black_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }
+                    Bounds boundsInParentBlueDuck = blueDuckImageView.getBoundsInParent();
+                    double blue_xMin = boundsInParentBlueDuck.getMinX();
+                    double blue_xMax = boundsInParentBlueDuck.getMaxX();
+                    double blue_yMax = boundsInParentBlueDuck.getMaxY();
+                    double blue_yMin = boundsInParentBlueDuck.getMinY();
+                    if (bulletX <= blue_xMax && blue_xMin <= bulletX && bulletY <= blue_yMax && blue_yMin <= bulletY) {
+                        duck--;
+                        blue_flyingTimeline.stop();
+                        ImageView shotDuckBlue = new ImageView("assets/duck_blue/7.png");
+                        ImageView fallingDuckBlue = new ImageView("assets/duck_blue/8.png");
+                        if (blue_duckIsFlipped_x) {
+                            shotDuckBlue.setScaleX(-1);
+                            fallingDuckBlue.setScaleX(-1);
+                        }
+                        blueDuckImageView.setImage(shotDuckBlue.getImage());
+                        Timeline blue_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blueDuckImageView.setImage(fallingDuckBlue.getImage());
+                        }));
+                        blue_shotImageChange.play();
+                        blue_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            blue_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = blueDuckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                blueDuckImageView.setTranslateY(newY);
+                            }));
+                            blue_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            blue_fallingTimeline.play();
+                            blue_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }if (duck==0){
+                        gameWon = true;
+                        youWin = new Text(0, 0, "YOU WIN!\n\n");
+                        youWin.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        youWin.setFill(Color.ORANGE);
+                        youWin2 = new Text(0, 0, "\nPress ENTER to play next level");
+                        youWin2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        youWin2.setFill(Color.ORANGE);
+                        youWin2.setTextAlignment(TextAlignment.CENTER);
+                        youWinVbox1.setAlignment(Pos.CENTER);
+                        youWinVbox2.setAlignment(Pos.CENTER);
+                        youWinVbox1.getChildren().addAll(youWin);
+                        youWinVbox2.getChildren().addAll(youWin2);
+                        Timeline flashingTimeline = new Timeline(
+                                new KeyFrame(Duration.seconds(0.5), evt -> youWin2.setVisible(true)),
+                                new KeyFrame(Duration.seconds(1.0), evt -> youWin2.setVisible(false))
+                        );
+                        flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                        flashingTimeline.play();
+                        levelThree.getChildren().addAll(youWinVbox1, youWinVbox2);
+                        levelWonMedia.setVolume(DuckHunt.VOLUME);
+                        levelWonMedia.play();
+                    }
+                }
+                if (ammo == 0 && !gameWon && duck!=0) {
+                    gameOver = true;
+                    gOverVbox1.getChildren().clear();
+                    gOverVbox2.getChildren().clear();
+                    gOverText1 = new Text(0, 0, "GAME OVER!\n\n");
+                    gOverText1.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText1.setFill(Color.ORANGE);
+                    gOverText2 = new Text(0, 0, "\nPress ENTER to play again\nPress ESC to exit");
+                    gOverText2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText2.setFill(Color.ORANGE);
+                    gOverText2.setTextAlignment(TextAlignment.CENTER);
+                    gOverVbox1.setAlignment(Pos.CENTER);
+                    gOverVbox2.setAlignment(Pos.CENTER);
+                    gOverVbox1.getChildren().addAll(gOverText1);
+                    gOverVbox2.getChildren().addAll(gOverText2);
+                    Timeline flashingTimeline = new Timeline(
+                            new KeyFrame(Duration.seconds(0.5), evt -> gOverText2.setVisible(true)),
+                            new KeyFrame(Duration.seconds(1.0), evt -> gOverText2.setVisible(false))
+                    );
+                    flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                    flashingTimeline.play();
+                    levelThree.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                    levelThree.getChildren().addAll(gOverVbox1, gOverVbox2);
+                    gOverMedia.setVolume(DuckHunt.VOLUME);
+                    gOverMedia.play();
+                }
+            }
+        });
+        levelThreeScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (Objects.requireNonNull(event.getCode()) == KeyCode.ENTER) {
+                    levelWonMedia.stop();
+                    if (gameOver) {
+                        gameOver = false;
+                        duck = 2;
+                        ammo = duck * 3;
+                        blue_fallingTimeline.stop();
+                        black_fallingTimeline.stop();
+                        blue_flyingTimeline.stop();
+                        black_flyingTimeline.stop();
+                        ammoText.setText("Ammo Left: " + ammo);
+                        StackPane tempStackPane = levelThreeSetter(scale);
+                        Scene tempScene = new Scene(tempStackPane, DuckHunt.width * scale, DuckHunt.height * scale);
+                        tempScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(tempScene);
+                        levelThreeClass levThreeScene = new levelThreeClass();
+                        levThreeScene.start(primaryStage, tempScene, scale, tempStackPane);
+                    } else if (gameWon) {
+                        black_fallingTimeline.stop();
+                        blue_fallingTimeline.stop();
+                        StackPane root4 = levelFourClass.levelFourSetter(scale);
+                        Scene levelFourScene = new Scene(root4, DuckHunt.width * scale, DuckHunt.height * scale);
+                        levelFourScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(levelFourScene);
+                        levelFourClass gameScene4 = new levelFourClass();
+                        gameScene4.start(primaryStage, levelFourScene, scale, root4);
+                    }
+                }if (Objects.requireNonNull(event.getCode()) == KeyCode.ESCAPE) {
+                    gOverMedia.stop();
+                    if (gameOver) {
+                        StackPane titleRoot = titleClass.titleSetter(scale);
+                        Scene titleScene = new Scene(titleRoot, DuckHunt.width * scale, DuckHunt.height * scale);
+                        titleScene.setCursor(Cursor.DEFAULT);
+                        primaryStage.setScene(titleScene);
+                        titleClass titleScn = new titleClass();
+                        titleScn.start(primaryStage, titleScene, scale);
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import java.net.URL;
+import java.util.Objects;
+
+public class levelFourClass {
+    URL bulletResource = getClass().getResource("assets/effects/Gunshot.mp3");
+    URL gOverResource = getClass().getResource("assets/effects/GameOver.mp3");
+    URL fallingResource = getClass().getResource("assets/effects/DuckFalls.mp3");
+    URL levelWonResource = getClass().getResource("assets/effects/LevelCompleted.mp3");
+    private static MediaPlayer bulletMedia, gOverMedia, fallingMedia, levelWonMedia;
+    {
+        assert bulletResource != null;
+        bulletMedia = new MediaPlayer(new Media(bulletResource.toString()));
+        assert gOverResource != null;
+        gOverMedia = new MediaPlayer(new Media(gOverResource.toString()));
+        assert fallingResource != null;
+        fallingMedia = new MediaPlayer(new Media(fallingResource.toString()));
+        assert levelWonResource != null;
+        levelWonMedia = new MediaPlayer(new Media(levelWonResource.toString()));
+    }
+    static MediaView bulletMediaView = new MediaView(bulletMedia);
+    private static Text ammoText, levelText, gOverText1, gOverText2, youWin, youWin2;
+    private static boolean gameOver, gameWon, blackDuckIsFlipped_x, blackDuckIsFlipped_y, blueDuckIsFlipped_x, blueDuckIsFlipped_y = false;
+    private static int duck=2, ammo = duck*3, level = 4;
+    private static ImageView blackDuckImageView = new ImageView(), blueDuckImageView = new ImageView();
+    private static Timeline black_flyingTimeline = new Timeline(), blue_flyingTimeline = new Timeline();
+    private static Timeline black_fallingTimeline = new Timeline(), blue_fallingTimeline = new Timeline();
+
+    public static StackPane levelFourSetter(double scale) {
+        duck = 2;
+        ammo = duck*3;
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        StackPane levelFour = new StackPane();
+        levelFour.setStyle("-fx-background-image: url('" + menuClass.selectedBackgroundPath + "');" + "-fx-background-size: "
+                + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+        ammoText = new Text(0, 0, "Ammo Left: " + ammo);
+        ammoText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        ammoText.setFill(Color.ORANGE);
+        levelText = new Text(0, 0, "Level " + level + "/6");
+        levelText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        levelText.setFill(Color.ORANGE);
+        VBox ammoVbox = new VBox();
+        ammoVbox.getChildren().add(ammoText);
+        ammoVbox.setPadding(new Insets(10 * scale, 33*scale, 30 * scale, 150 * scale));
+        ammoVbox.setAlignment(Pos.TOP_RIGHT);
+        VBox levelVbox = new VBox();
+        levelVbox.getChildren().add(levelText);
+        levelVbox.setPadding(new Insets(10 * scale, 50 * scale, 30 * scale, 50 * scale));
+        levelVbox.setAlignment(Pos.TOP_CENTER);
+        String[] blueDuckImagesFlying = {"assets/duck_blue/1.png", "assets/duck_blue/2.png", "assets/duck_blue/3.png"};
+        String[] blackDuckImagesFlying = {"assets/duck_black/1.png", "assets/duck_black/2.png", "assets/duck_black/3.png"};
+        Image blueDuck = new Image("assets/duck_blue/1.png");
+        double width = blueDuck.getWidth() * scale;
+        double height = blueDuck.getHeight() * scale;
+        Image[] blueDuckImages = new Image[blueDuckImagesFlying.length];
+        Image[] blackDuckImages = new Image[blackDuckImagesFlying.length];
+        for (int i = 0; i < blueDuckImagesFlying.length; i++) {
+            blueDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(blueDuckImagesFlying[i])));
+        }
+        for (int i = 0; i < blackDuckImagesFlying.length; i++) {
+            blackDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(blackDuckImagesFlying[i])));
+        }
+        blueDuckImageView.setFitWidth(width);
+        blueDuckImageView.setFitHeight(height);
+        blueDuckImageView.setTranslateX(width * scale);
+        blueDuckImageView.setTranslateY(0);
+        blackDuckImageView.setFitWidth(width);
+        blackDuckImageView.setFitHeight(height);
+        blackDuckImageView.setTranslateX(-width * scale);
+        blackDuckImageView.setTranslateY(0);
+        blackDuckImageView.setScaleX(1);
+        blackDuckImageView.setScaleY(1);
+        blueDuckImageView.setScaleX(1);
+        blueDuckImageView.setScaleY(1);
+        final int[] currentImageIndex = {0};
+        blue_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blueDuckImageView.setImage(blueDuckImages[currentImageIndex[0]]);
+            currentImageIndex[0] = (currentImageIndex[0] + 1) % blueDuckImagesFlying.length;
+            double blue_initialX = width * scale;
+            double blue_finalX = -width * scale;
+            double blue_initialY = height * scale;
+            double blue_finalY = -height * scale;
+            double unitMove = 8*scale;
+            final double blue_currentX = blueDuckImageView.getTranslateX();
+            final double blue_currentY = blueDuckImageView.getTranslateY();
+            double blue_newX = blue_currentX - unitMove;
+            double blue_newY = blue_currentY - unitMove;
+            blueDuckImageView.setScaleX(-1);
+            if (blue_newY >= blue_finalY && !blueDuckIsFlipped_y) {
+                blueDuckImageView.setTranslateY(blue_newY);
+            } else {
+                blueDuckIsFlipped_y = true;
+                blue_newY = blue_currentY + unitMove;
+                blueDuckImageView.setScaleY(-1);
+                blueDuckImageView.setTranslateY(blue_newY);
+                if (blue_currentY > blue_initialY) {
+                    blueDuckImageView.setScaleY(1);
+                    blueDuckIsFlipped_y = false;
+                    blueDuckImageView.setTranslateY(blue_initialY);
+                }
+            }
+            if (blue_newX >= blue_finalX && !blueDuckIsFlipped_x) {
+                blueDuckImageView.setTranslateX(blue_newX);
+            } else {
+                blueDuckIsFlipped_x = true;
+                blue_newX = blue_currentX + unitMove;
+                blueDuckImageView.setScaleX(1);
+                blueDuckImageView.setTranslateX(blue_newX);
+                if (blue_currentX > blue_initialX) {
+                    blueDuckImageView.setScaleX(-1);
+                    blueDuckIsFlipped_x = false;
+                    blueDuckImageView.setTranslateX(blue_initialX);
+                }
+            }
+        })
+        );
+
+        black_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blackDuckImageView.setImage(blackDuckImages[currentImageIndex[0]]);
+            currentImageIndex[0] = (currentImageIndex[0] + 1) % blackDuckImagesFlying.length;
+            double black_initialX = -width * scale;
+            double black_finalX = width * scale;
+            double black_initialY = height * scale;
+            double black_finalY = -height * scale;
+            double unitMove = 8*scale;
+            final double black_currentX = blackDuckImageView.getTranslateX();
+            final double black_currentY = blackDuckImageView.getTranslateY();
+            double black_newX = black_currentX + unitMove;
+            double black_newY = black_currentY - unitMove;
+            if (black_newY >= black_finalY && !blackDuckIsFlipped_y) {
+                blackDuckImageView.setTranslateY(black_newY);
+            } else {
+                blackDuckIsFlipped_y = true;
+                black_newY = black_currentY + unitMove;
+                blackDuckImageView.setScaleY(-1);
+                blackDuckImageView.setTranslateY(black_newY);
+                if (black_currentY > black_initialY) {
+                    blackDuckImageView.setScaleY(1);
+                    blackDuckIsFlipped_y = false;
+                    blackDuckImageView.setTranslateY(black_initialY);
+                }
+            }
+            if (black_newX <= black_finalX && !blackDuckIsFlipped_x) {
+                blackDuckImageView.setTranslateX(black_newX);
+            } else {
+                blackDuckIsFlipped_x = true;
+                black_newX = black_currentX - unitMove;
+                blackDuckImageView.setScaleX(-1);
+                blackDuckImageView.setTranslateX(black_newX);
+                if (black_currentX < black_initialX) {
+                    blackDuckImageView.setScaleX(1);
+                    blackDuckIsFlipped_x = false;
+                    blackDuckImageView.setTranslateX(black_initialX);
+                }
+            }
+        })
+        );
+        blue_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        blue_flyingTimeline.play();
+        black_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        black_flyingTimeline.play();
+        if(black_fallingTimeline!=null){
+            black_fallingTimeline.stop();
+        }if(blue_fallingTimeline!=null){
+            blue_fallingTimeline.stop();
+        }
+        levelFour.getChildren().clear();
+        levelFour.getChildren().addAll(bulletMediaView, ammoVbox, levelVbox, blueDuckImageView, blackDuckImageView, menuClass.foreground);
+        gameWon = false;
+        gameOver = false;
+        blackDuckIsFlipped_y=false;
+        blueDuckIsFlipped_y=false;
+        blackDuckIsFlipped_x=false;
+        blueDuckIsFlipped_x=false;
+        return levelFour;
+    }
+    public void start(Stage primaryStage, Scene levelFourScene, double scale, StackPane levelFour){
+        VBox gOverVbox1 = new VBox(), gOverVbox2 = new VBox(), youWinVbox1 = new VBox(), youWinVbox2 = new VBox();
+        levelFourScene.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (!gameOver && !gameWon && duck!=0) {
+                    bulletMedia.stop();
+                    bulletMedia.setVolume(DuckHunt.VOLUME);
+                    bulletMedia.play();
+                    ammo--;
+                    ammoText.setText("Ammo Left: " + ammo);
+                    double bulletX = event.getX();
+                    double bulletY = event.getY();
+                    Bounds boundsInParentBlackDuck = blackDuckImageView.getBoundsInParent();
+                    double black_xMin = boundsInParentBlackDuck.getMinX();
+                    double black_xMax = boundsInParentBlackDuck.getMaxX();
+                    double black_yMax = boundsInParentBlackDuck.getMaxY();
+                    double black_yMin = boundsInParentBlackDuck.getMinY();
+                    if (bulletX <= black_xMax && black_xMin <= bulletX && bulletY <= black_yMax && black_yMin <= bulletY){
+                        duck--;
+                        black_flyingTimeline.stop();
+                        ImageView shotDuckBlack = new ImageView("assets/duck_black/7.png");
+                        ImageView fallingDuckBlack = new ImageView("assets/duck_black/8.png");
+                        if (blackDuckIsFlipped_x){
+                            shotDuckBlack.setScaleX(-1);
+                            fallingDuckBlack.setScaleX(-1);
+                        }
+                        blackDuckImageView.setScaleY(1);
+                        blackDuckImageView.setImage(shotDuckBlack.getImage());
+                        Timeline black_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blackDuckImageView.setImage(fallingDuckBlack.getImage());
+                        }));
+                        black_shotImageChange.play();
+                        black_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            black_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double black_currentY = blackDuckImageView.getTranslateY();
+                                double black_newY = black_currentY + unitMove;
+                                blackDuckImageView.setTranslateY(black_newY);
+                            }));
+                            black_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            black_fallingTimeline.play();
+                            black_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }
+                    Bounds boundsInParentBlueDuck = blueDuckImageView.getBoundsInParent();
+                    double blue_xMin = boundsInParentBlueDuck.getMinX();
+                    double blue_xMax = boundsInParentBlueDuck.getMaxX();
+                    double blue_yMax = boundsInParentBlueDuck.getMaxY();
+                    double blue_yMin = boundsInParentBlueDuck.getMinY();
+                    if (bulletX <= blue_xMax && blue_xMin <= bulletX && bulletY <= blue_yMax && blue_yMin <= bulletY) {
+                        duck--;
+                        blue_flyingTimeline.stop();
+                        ImageView shotDuckBlue = new ImageView("assets/duck_blue/7.png");
+                        ImageView fallingDuckBlue = new ImageView("assets/duck_blue/8.png");
+                        if (blueDuckIsFlipped_x) {
+                            shotDuckBlue.setScaleX(-1);
+                            fallingDuckBlue.setScaleX(-1);
+                        }
+                        blueDuckImageView.setScaleY(1);
+                        blueDuckImageView.setImage(shotDuckBlue.getImage());
+                        Timeline blue_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blueDuckImageView.setImage(fallingDuckBlue.getImage());
+                        }));
+                        blue_shotImageChange.play();
+                        blue_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            blue_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = blueDuckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                blueDuckImageView.setTranslateY(newY);
+                            }));
+                            blue_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            blue_fallingTimeline.play();
+                            blue_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }if (duck==0){
+                        gameWon = true;
+                        youWin = new Text(0, 0, "YOU WIN!\n\n");
+                        youWin.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        youWin.setFill(Color.ORANGE);
+                        youWin2 = new Text(0, 0, "\nPress ENTER to play next level");
+                        youWin2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        youWin2.setFill(Color.ORANGE);
+                        youWin2.setTextAlignment(TextAlignment.CENTER);
+                        youWinVbox1.setAlignment(Pos.CENTER);
+                        youWinVbox2.setAlignment(Pos.CENTER);
+                        youWinVbox1.getChildren().addAll(youWin);
+                        youWinVbox2.getChildren().addAll(youWin2);
+                        Timeline flashingTimeline = new Timeline(
+                                new KeyFrame(Duration.seconds(0.5), evt -> youWin2.setVisible(true)),
+                                new KeyFrame(Duration.seconds(1.0), evt -> youWin2.setVisible(false))
+                        );
+                        flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                        flashingTimeline.play();
+                        levelFour.getChildren().removeAll(youWinVbox1, youWinVbox2);
+                        levelFour.getChildren().addAll(youWinVbox1, youWinVbox2);
+                        levelWonMedia.setVolume(DuckHunt.VOLUME);
+                        levelWonMedia.play();
+                    }
+                }
+                if (ammo == 0 && !gameWon && duck!=0) {
+                    gameOver = true;
+                    gOverVbox1.getChildren().clear();
+                    gOverVbox2.getChildren().clear();
+                    gOverText1 = new Text(0, 0, "GAME OVER!\n\n");
+                    gOverText1.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText1.setFill(Color.ORANGE);
+                    gOverText2 = new Text(0, 0, "\nPress ENTER to play again\nPress ESC to exit");
+                    gOverText2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText2.setFill(Color.ORANGE);
+                    gOverText2.setTextAlignment(TextAlignment.CENTER);
+                    gOverVbox1.setAlignment(Pos.CENTER);
+                    gOverVbox2.setAlignment(Pos.CENTER);
+                    gOverVbox1.getChildren().addAll(gOverText1);
+                    gOverVbox2.getChildren().addAll(gOverText2);
+                    Timeline flashingTimeline = new Timeline(
+                            new KeyFrame(Duration.seconds(0.5), evt -> gOverText2.setVisible(true)),
+                            new KeyFrame(Duration.seconds(1.0), evt -> gOverText2.setVisible(false))
+                    );
+                    flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                    flashingTimeline.play();
+                    levelFour.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                    levelFour.getChildren().addAll(gOverVbox1, gOverVbox2);
+                    gOverMedia.setVolume(DuckHunt.VOLUME);
+                    gOverMedia.play();
+                }
+            }
+        });
+        levelFourScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (Objects.requireNonNull(event.getCode()) == KeyCode.ENTER) {
+                    levelWonMedia.stop();
+                    if (gameOver) {
+                        gameOver = false;
+                        duck = 2;
+                        ammo = duck * 3;
+                        blue_fallingTimeline.stop();
+                        black_fallingTimeline.stop();
+                        blue_flyingTimeline.stop();
+                        black_flyingTimeline.stop();
+                        ammoText.setText("Ammo Left: " + ammo);
+                        StackPane tempStackPane = levelFourSetter(scale);
+                        Scene tempScene = new Scene(tempStackPane, DuckHunt.width * scale, DuckHunt.height * scale);
+                        tempScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(tempScene);
+                        levelFourClass levFourScene = new levelFourClass();
+                        levFourScene.start(primaryStage, tempScene, scale, tempStackPane);
+                    } else if (gameWon) {
+                        black_fallingTimeline.stop();
+                        blue_fallingTimeline.stop();
+                        StackPane root5 = levelFiveClass.levelFiveSetter(scale);
+                        Scene levelFiveScene = new Scene(root5, DuckHunt.width * scale, DuckHunt.height * scale);
+                        levelFiveScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(levelFiveScene);
+                        levelFiveClass gameScene5 = new levelFiveClass();
+                        gameScene5.start(primaryStage, levelFiveScene, scale, root5);
+                    }
+                }if (Objects.requireNonNull(event.getCode()) == KeyCode.ESCAPE) {
+                    gOverMedia.stop();
+                    if (gameOver) {
+                        StackPane titleRoot = titleClass.titleSetter(scale);
+                        Scene titleScene = new Scene(titleRoot, DuckHunt.width * scale, DuckHunt.height * scale);
+                        titleScene.setCursor(Cursor.DEFAULT);
+                        primaryStage.setScene(titleScene);
+                        titleClass titleScn = new titleClass();
+                        titleScn.start(primaryStage, titleScene, scale);
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+import java.net.URL;
+import java.util.Objects;
+
+public class levelFiveClass {
+    URL bulletResource = getClass().getResource("assets/effects/Gunshot.mp3");
+    URL gOverResource = getClass().getResource("assets/effects/GameOver.mp3");
+    URL fallingResource = getClass().getResource("assets/effects/DuckFalls.mp3");
+    URL levelWonResource = getClass().getResource("assets/effects/LevelCompleted.mp3");
+    private static MediaPlayer bulletMedia, gOverMedia, fallingMedia, levelWonMedia;
+    {
+        assert bulletResource != null;
+        bulletMedia = new MediaPlayer(new Media(bulletResource.toString()));
+        assert gOverResource != null;
+        gOverMedia = new MediaPlayer(new Media(gOverResource.toString()));
+        assert fallingResource != null;
+        fallingMedia = new MediaPlayer(new Media(fallingResource.toString()));
+        assert levelWonResource != null;
+        levelWonMedia = new MediaPlayer(new Media(levelWonResource.toString()));
+    }
+    static MediaView bulletMediaView = new MediaView(bulletMedia);
+    private static Text ammoText, levelText, gOverText1, gOverText2, youWin, youWin2;
+    private static ImageView blackDuckImageView = new ImageView(), blueDuckImageView = new ImageView(), redDuckImageView = new ImageView();
+    private static Timeline black_flyingTimeline = new Timeline(), blue_flyingTimeline = new Timeline(), red_flyingTimeline = new Timeline();
+    private static Timeline black_fallingTimeline = new Timeline(), blue_fallingTimeline = new Timeline(), red_fallingTimeline = new Timeline();
+    private static boolean gameOver, gameWon, black_duckIsFlipped_x, blue_duckIsFlipped_x, red_duckIsFlipped_x, red_duckIsFlipped_y = false;
+    private static int duck=3, ammo = duck*3, level = 5;
+    public static StackPane levelFiveSetter(double scale){
+        duck = 3;
+        ammo = duck*3;
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        StackPane levelFive = new StackPane();
+        levelFive.setStyle("-fx-background-image: url('" + menuClass.selectedBackgroundPath + "');" + "-fx-background-size: "
+                + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+        ammoText = new Text(0, 0, "Ammo Left: " + ammo);
+        ammoText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        ammoText.setFill(Color.ORANGE);
+        levelText = new Text(0, 0, "Level " + level + "/6");
+        levelText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        levelText.setFill(Color.ORANGE);
+        VBox ammoVbox = new VBox();
+        ammoVbox.getChildren().add(ammoText);
+        ammoVbox.setPadding(new Insets(10 * scale, 33*scale, 30 * scale, 150 * scale));
+        ammoVbox.setAlignment(Pos.TOP_RIGHT);
+        VBox levelVbox = new VBox();
+        levelVbox.getChildren().add(levelText);
+        levelVbox.setPadding(new Insets(10 * scale, 50 * scale, 30 * scale, 50 * scale));
+        levelVbox.setAlignment(Pos.TOP_CENTER);
+        String[] duckImagesFlyingBlack = {"assets/duck_black/4.png", "assets/duck_black/5.png", "assets/duck_black/6.png"};
+        Image blackDuck = new Image("assets/duck_black/4.png");
+        double width = blackDuck.getWidth()*scale;
+        double height = blackDuck.getHeight()*scale;
+        Image[] blackDuckImages = new Image[duckImagesFlyingBlack.length];
+        for (int i = 0; i < duckImagesFlyingBlack.length; i++) {
+            blackDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(duckImagesFlyingBlack[i])));
+        }
+        blackDuckImageView.setFitWidth(width);
+        blackDuckImageView.setFitHeight(height);
+        blackDuckImageView.setTranslateX(-width*scale);
+        blackDuckImageView.setTranslateY(-67 * scale);
+        blackDuckImageView.setScaleX(1);
+        blackDuckImageView.setScaleY(1);
+        String[] redDuckImagesFlying = {"assets/duck_red/1.png", "assets/duck_red/2.png", "assets/duck_red/3.png"};
+        Image[] redDuckImages = new Image[redDuckImagesFlying.length];
+        for (int i = 0; i < redDuckImagesFlying.length; i++) {
+            redDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(redDuckImagesFlying[i])));
+        }
+        redDuckImageView.setFitWidth(width);
+        redDuckImageView.setFitHeight(height);
+        redDuckImageView.setTranslateX(-width * scale);
+        redDuckImageView.setTranslateY(0*scale);
+        redDuckImageView.setScaleX(1);
+        redDuckImageView.setScaleY(1);
+        String[] duckImagesFlyingBlue = {"assets/duck_blue/4.png", "assets/duck_blue/5.png", "assets/duck_blue/6.png"};
+        Image[] blueDuckImages = new Image[duckImagesFlyingBlue.length];
+        for (int i = 0; i < duckImagesFlyingBlue.length; i++) {
+            blueDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(duckImagesFlyingBlue[i])));
+        }
+        blueDuckImageView.setFitWidth(width);
+        blueDuckImageView.setFitHeight(height);
+        blueDuckImageView.setTranslateX(width*scale);
+        blueDuckImageView.setTranslateY(-17*scale);
+        blueDuckImageView.setScaleX(1);
+        blueDuckImageView.setScaleY(1);
+        final int[] red_currentImageIndex = {0};
+        final int[] blue_currentImageIndex = {0};
+        final int[] black_currentImageIndex = {0};
+        red_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            redDuckImageView.setImage(redDuckImages[red_currentImageIndex[0]]);
+            red_currentImageIndex[0] = (red_currentImageIndex[0] + 1) % redDuckImagesFlying.length;
+            double red_initialX = -width * scale;
+            double red_finalX = width * scale;
+            double red_initialY = -height * scale;
+            double red_finalY = height * scale;
+            double unitMove = 8*scale;
+            final double red_currentX = redDuckImageView.getTranslateX();
+            final double red_currentY = redDuckImageView.getTranslateY();
+            double red_newX = red_currentX + unitMove;
+            double red_newY = red_currentY + unitMove;
+            redDuckImageView.setScaleY(-1);
+            if (red_newY <= red_finalY && !red_duckIsFlipped_y) {
+                redDuckImageView.setTranslateY(red_newY);
+            } else {
+                red_duckIsFlipped_y = true;
+                red_newY = red_currentY - unitMove;
+                redDuckImageView.setScaleY(1);
+                redDuckImageView.setTranslateY(red_newY);
+                if (red_currentY < red_initialY) {
+                    redDuckImageView.setScaleY(-1);
+                    red_duckIsFlipped_y = false;
+                    redDuckImageView.setTranslateY(red_initialY);
+                }
+            }
+            if (red_newX <= red_finalX && !red_duckIsFlipped_x) {
+                redDuckImageView.setTranslateX(red_newX);
+            } else {
+                red_duckIsFlipped_x = true;
+                red_newX = red_currentX - unitMove;
+                redDuckImageView.setScaleX(-1);
+                redDuckImageView.setTranslateX(red_newX);
+                if (red_currentX < red_initialX) {
+                    redDuckImageView.setScaleX(1);
+                    red_duckIsFlipped_x = false;
+                    redDuckImageView.setTranslateX(red_initialX);
+                }
+            }
+        })
+        );
+
+        blue_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blueDuckImageView.setImage(blueDuckImages[blue_currentImageIndex[0]]);
+            blue_currentImageIndex[0] = (blue_currentImageIndex[0] + 1) % duckImagesFlyingBlue.length;
+            double blue_initialX = width*scale;
+            double blue_finalX = -width*scale;
+            double unitMove = 8*scale;;
+            final double blue_currentX = blueDuckImageView.getTranslateX();
+            double blue_newX = blue_currentX - unitMove;
+            blueDuckImageView.setScaleX(-1);
+            if (blue_newX >= blue_finalX && !blue_duckIsFlipped_x) {
+                blueDuckImageView.setTranslateX(blue_newX);
+            }else{
+                blue_duckIsFlipped_x =true;
+                blue_newX = blue_currentX + unitMove;
+                blueDuckImageView.setScaleX(1);
+                blueDuckImageView.setTranslateX(blue_newX);
+                if (blue_currentX>blue_initialX){
+                    blueDuckImageView.setScaleX(-1);
+                    blue_duckIsFlipped_x =false;
+                    blueDuckImageView.setTranslateX(blue_initialX);
+                }
+            }
+        })
+        );
+        black_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blackDuckImageView.setImage(blackDuckImages[black_currentImageIndex[0]]);
+            black_currentImageIndex[0] = (black_currentImageIndex[0] + 1) % duckImagesFlyingBlack.length;
+            double black_initialX = -width*scale;
+            double black_finalX = width*scale;
+            double unitMove = 8*scale;;
+            final double black_currentX = blackDuckImageView.getTranslateX();
+            double black_newX = black_currentX + unitMove;
+            if (black_newX <= black_finalX && !black_duckIsFlipped_x) {
+                blackDuckImageView.setTranslateX(black_newX);
+            }else{
+                black_duckIsFlipped_x =true;
+                black_newX = black_currentX - unitMove;
+                blackDuckImageView.setScaleX(-1);
+                blackDuckImageView.setTranslateX(black_newX);
+                if (black_currentX<black_initialX){
+                    blackDuckImageView.setScaleX(1);
+                    black_duckIsFlipped_x =false;
+                    blackDuckImageView.setTranslateX(black_initialX);
+                }
+            }
+        })
+        );
+        black_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        blue_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        red_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        black_flyingTimeline.play();
+        blue_flyingTimeline.play();
+        red_flyingTimeline.play();
+        if(black_fallingTimeline!=null){
+            black_fallingTimeline.stop();
+        }if(blue_fallingTimeline!=null){
+            blue_fallingTimeline.stop();
+        }if(red_fallingTimeline!=null){
+            red_fallingTimeline.stop();
+        }
+        levelFive.getChildren().clear();
+        levelFive.getChildren().addAll(bulletMediaView, ammoVbox, levelVbox, blackDuckImageView, blueDuckImageView,
+                redDuckImageView, menuClass.foreground);
+        gameWon = false;
+        gameOver = false;
+        red_duckIsFlipped_y=false;
+        black_duckIsFlipped_x=false;
+        blue_duckIsFlipped_x=false;
+        red_duckIsFlipped_x=false;
+        return levelFive;
+    }
+    public void start(Stage primaryStage, Scene levelFiveScene, double scale, StackPane levelFive){
+        VBox gOverVbox1 = new VBox(), gOverVbox2 = new VBox(), youWinVbox1 = new VBox(), youWinVbox2 = new VBox();
+        levelFiveScene.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (!gameOver && !gameWon && duck!=0) {
+                    bulletMedia.stop();
+                    bulletMedia.setVolume(DuckHunt.VOLUME);
+                    bulletMedia.play();
+                    ammo--;
+                    ammoText.setText("Ammo Left: " + ammo);
+                    double bulletX = event.getX();
+                    double bulletY = event.getY();
+                    Bounds boundsInParentBlackDuck = blackDuckImageView.getBoundsInParent();
+                    double black_xMin = boundsInParentBlackDuck.getMinX();
+                    double black_xMax = boundsInParentBlackDuck.getMaxX();
+                    double black_yMax = boundsInParentBlackDuck.getMaxY();
+                    double black_yMin = boundsInParentBlackDuck.getMinY();
+                    if (bulletX <= black_xMax && black_xMin <= bulletX && bulletY <= black_yMax && black_yMin <= bulletY){
+                        duck--;
+                        black_flyingTimeline.stop();
+                        ImageView shotDuckBlack = new ImageView("assets/duck_black/7.png");
+                        ImageView fallingDuckBlack = new ImageView("assets/duck_black/8.png");
+                        if (black_duckIsFlipped_x){
+                            shotDuckBlack.setScaleX(-1);
+                            fallingDuckBlack.setScaleX(-1);
+                        }
+                        blackDuckImageView.setScaleY(1);
+                        blackDuckImageView.setImage(shotDuckBlack.getImage());
+                        Timeline black_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blackDuckImageView.setImage(fallingDuckBlack.getImage());
+                        }));
+                        black_shotImageChange.play();
+                        black_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            black_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double black_currentY = blackDuckImageView.getTranslateY();
+                                double black_newY = black_currentY + unitMove;
+                                blackDuckImageView.setTranslateY(black_newY);
+                            }));
+                            black_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            black_fallingTimeline.play();
+                            black_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }
+                    Bounds boundsInParentBlueDuck = blueDuckImageView.getBoundsInParent();
+                    double blue_xMin = boundsInParentBlueDuck.getMinX();
+                    double blue_xMax = boundsInParentBlueDuck.getMaxX();
+                    double blue_yMax = boundsInParentBlueDuck.getMaxY();
+                    double blue_yMin = boundsInParentBlueDuck.getMinY();
+                    if (bulletX <= blue_xMax && blue_xMin <= bulletX && bulletY <= blue_yMax && blue_yMin <= bulletY) {
+                        duck--;
+                        blue_flyingTimeline.stop();
+                        ImageView shotDuckBlue = new ImageView("assets/duck_blue/7.png");
+                        ImageView fallingDuckBlue = new ImageView("assets/duck_blue/8.png");
+                        if (blue_duckIsFlipped_x) {
+                            shotDuckBlue.setScaleX(-1);
+                            fallingDuckBlue.setScaleX(-1);
+                        }
+                        blueDuckImageView.setScaleY(1);
+                        blueDuckImageView.setImage(shotDuckBlue.getImage());
+                        Timeline blue_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blueDuckImageView.setImage(fallingDuckBlue.getImage());
+                        }));
+                        blue_shotImageChange.play();
+                        blue_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            blue_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = blueDuckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                blueDuckImageView.setTranslateY(newY);
+                            }));
+                            blue_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            blue_fallingTimeline.play();
+                            blue_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }
+                    Bounds boundsInParentRedDuck = redDuckImageView.getBoundsInParent();
+                    double red_xMin = boundsInParentRedDuck.getMinX();
+                    double red_xMax = boundsInParentRedDuck.getMaxX();
+                    double red_yMax = boundsInParentRedDuck.getMaxY();
+                    double red_yMin = boundsInParentRedDuck.getMinY();
+                    if (bulletX <= red_xMax && red_xMin <= bulletX && bulletY <= red_yMax && red_yMin <= bulletY) {
+                        duck--;
+                        red_flyingTimeline.stop();
+                        ImageView shotDuckRed = new ImageView("assets/duck_red/7.png");
+                        ImageView fallingDuckRed = new ImageView("assets/duck_red/8.png");
+                        if (red_duckIsFlipped_x) {
+                            shotDuckRed.setScaleX(-1);
+                            fallingDuckRed.setScaleX(-1);
+                        }
+                        redDuckImageView.setScaleY(1);
+                        redDuckImageView.setImage(shotDuckRed.getImage());
+                        Timeline red_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            redDuckImageView.setImage(fallingDuckRed.getImage());
+                        }));
+                        red_shotImageChange.play();
+                        red_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            red_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = redDuckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                redDuckImageView.setTranslateY(newY);
+                            }));
+                            red_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            red_fallingTimeline.play();
+                            red_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }if (duck==0){
+                        gameWon = true;
+                        youWin = new Text(0, 0, "YOU WIN!\n\n");
+                        youWin.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        youWin.setFill(Color.ORANGE);
+                        youWin2 = new Text(0, 0, "\nPress ENTER to play next level");
+                        youWin2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        youWin2.setFill(Color.ORANGE);
+                        youWin2.setTextAlignment(TextAlignment.CENTER);
+                        youWinVbox1.setAlignment(Pos.CENTER);
+                        youWinVbox2.setAlignment(Pos.CENTER);
+                        youWinVbox1.getChildren().addAll(youWin);
+                        youWinVbox2.getChildren().addAll(youWin2);
+                        Timeline flashingTimeline = new Timeline(
+                                new KeyFrame(Duration.seconds(0.5), evt -> youWin2.setVisible(true)),
+                                new KeyFrame(Duration.seconds(1.0), evt -> youWin2.setVisible(false))
+                        );
+                        flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                        flashingTimeline.play();
+                        levelFive.getChildren().removeAll(youWinVbox1, youWinVbox2);
+                        levelFive.getChildren().addAll(youWinVbox1, youWinVbox2);
+                        levelWonMedia.setVolume(DuckHunt.VOLUME);
+                        levelWonMedia.play();
+                    }
+                }
+                if (ammo == 0 && !gameWon && duck!=0) {
+                    gameOver = true;
+                    gOverVbox1.getChildren().clear();
+                    gOverVbox2.getChildren().clear();
+                    gOverText1 = new Text(0, 0, "GAME OVER!\n\n");
+                    gOverText1.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText1.setFill(Color.ORANGE);
+                    gOverText2 = new Text(0, 0, "\nPress ENTER to play again\nPress ESC to exit");
+                    gOverText2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText2.setFill(Color.ORANGE);
+                    gOverText2.setTextAlignment(TextAlignment.CENTER);
+                    gOverVbox1.setAlignment(Pos.CENTER);
+                    gOverVbox2.setAlignment(Pos.CENTER);
+                    gOverVbox1.getChildren().addAll(gOverText1);
+                    gOverVbox2.getChildren().addAll(gOverText2);
+                    Timeline flashingTimeline = new Timeline(
+                            new KeyFrame(Duration.seconds(0.5), evt -> gOverText2.setVisible(true)),
+                            new KeyFrame(Duration.seconds(1.0), evt -> gOverText2.setVisible(false))
+                    );
+                    flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                    flashingTimeline.play();
+                    levelFive.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                    levelFive.getChildren().addAll(gOverVbox1, gOverVbox2);
+                    gOverMedia.setVolume(DuckHunt.VOLUME);
+                    gOverMedia.play();
+                }
+            }
+        });
+        levelFiveScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                if (Objects.requireNonNull(event.getCode()) == KeyCode.ENTER) {
+                    levelWonMedia.stop();
+                    if (gameOver) {
+                        gameOver = false;
+                        duck = 3;
+                        ammo = duck * 3;
+                        blue_fallingTimeline.stop();
+                        black_fallingTimeline.stop();
+                        red_fallingTimeline.stop();
+                        blue_flyingTimeline.stop();
+                        black_flyingTimeline.stop();
+                        red_flyingTimeline.stop();
+                        ammoText.setText("Ammo Left: " + ammo);
+                        StackPane tempStackPane = levelFiveSetter(scale);
+                        Scene tempScene = new Scene(tempStackPane, DuckHunt.width * scale, DuckHunt.height * scale);
+                        tempScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(tempScene);
+                        levelFiveClass levFiveScene = new levelFiveClass();
+                        levFiveScene.start(primaryStage, tempScene, scale, tempStackPane);
+                    } else if (gameWon) {
+                        black_fallingTimeline.stop();
+                        blue_fallingTimeline.stop();
+                        red_fallingTimeline.stop();
+                        StackPane root6 = levelSixClass.levelSixSetter(scale);
+                        Scene levelSixScene = new Scene(root6, DuckHunt.width * scale, DuckHunt.height * scale);
+                        levelSixScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                        primaryStage.setScene(levelSixScene);
+                        levelSixClass gameScene6 = new levelSixClass();
+                        gameScene6.start(primaryStage, levelSixScene, scale, root6);
+                    }
+                }if (Objects.requireNonNull(event.getCode()) == KeyCode.ESCAPE) {
+                    gOverMedia.stop();
+                    if (gameOver) {
+                        StackPane titleRoot = titleClass.titleSetter(scale);
+                        Scene titleScene = new Scene(titleRoot, DuckHunt.width * scale, DuckHunt.height * scale);
+                        titleScene.setCursor(Cursor.DEFAULT);
+                        primaryStage.setScene(titleScene);
+                        titleClass titleScn = new titleClass();
+                        titleScn.start(primaryStage, titleScene, scale);
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+
+import javafx.animation.*;
+import javafx.event.EventHandler;
+import javafx.geometry.*;
+import javafx.scene.*;
+import javafx.scene.image.*;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.*;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+import java.net.URL;
+import java.util.Objects;
+
+public class levelSixClass {
+    URL bulletResource = getClass().getResource("assets/effects/Gunshot.mp3");
+    URL gOverResource = getClass().getResource("assets/effects/GameOver.mp3");
+    URL fallingResource = getClass().getResource("assets/effects/DuckFalls.mp3");
+    URL successResource = getClass().getResource("assets/effects/GameCompleted.mp3");
+    private static MediaPlayer bulletMedia, gOverMedia, fallingMedia, successMedia;
+    {
+        assert bulletResource != null;
+        bulletMedia = new MediaPlayer(new Media(bulletResource.toString()));
+        assert gOverResource != null;
+        gOverMedia = new MediaPlayer(new Media(gOverResource.toString()));
+        assert fallingResource != null;
+        fallingMedia = new MediaPlayer(new Media(fallingResource.toString()));
+        assert successResource != null;
+        successMedia = new MediaPlayer(new Media(successResource.toString()));
+    }
+    static MediaView bulletMediaView = new MediaView(bulletMedia);
+    private static Text ammoText, levelText, gOverText1, gOverText2;
+    private static ImageView blackDuckImageView = new ImageView(), blueDuckImageView = new ImageView(), redDuckImageView = new ImageView();
+    private static Timeline black_flyingTimeline = new Timeline(), blue_flyingTimeline = new Timeline(), red_flyingTimeline = new Timeline();
+    private static Timeline black_fallingTimeline = new Timeline(), blue_fallingTimeline = new Timeline(), red_fallingTimeline = new Timeline();
+    private static boolean gameOver, gameWon, black_duckIsFlipped_x, blue_duckIsFlipped_x, red_duckIsFlipped_x,
+            red_duckIsFlipped_y, black_duckIsFlipped_y, blue_duckIsFlipped_y = false;
+    private static int duck = 3, ammo = duck * 3, level = 6;
+    public static StackPane levelSixSetter(double scale){
+        duck = 3;
+        ammo = duck*3;
+        String menuBackgroundSize = String.format("%fpx %fpx", scale * DuckHunt.width, scale * DuckHunt.height);
+        StackPane levelSix = new StackPane();
+        levelSix.setStyle("-fx-background-image: url('" + menuClass.selectedBackgroundPath + "');" + "-fx-background-size: "
+                + menuBackgroundSize + ";" + "-fx-background-repeat: no-repeat;");
+        ammoText = new Text(0, 0, "Ammo Left: " + ammo);
+        ammoText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        ammoText.setFill(Color.ORANGE);
+        levelText = new Text(0, 0, "Level " + level + "/6");
+        levelText.setFont(Font.font("Arial", FontWeight.BOLD, 7*scale));
+        levelText.setFill(Color.ORANGE);
+        VBox ammoVbox = new VBox();
+        ammoVbox.getChildren().add(ammoText);
+        ammoVbox.setPadding(new Insets(10 * scale, 33*scale, 30 * scale, 150 * scale));
+        ammoVbox.setAlignment(Pos.TOP_RIGHT);
+        VBox levelVbox = new VBox();
+        levelVbox.getChildren().add(levelText);
+        levelVbox.setPadding(new Insets(10 * scale, 50 * scale, 30 * scale, 50 * scale));
+        levelVbox.setAlignment(Pos.TOP_CENTER);
+        String[] redDuckImagesFlying = {"assets/duck_red/1.png", "assets/duck_red/2.png", "assets/duck_red/3.png"};
+        Image redDuck = new Image("assets/duck_red/1.png");
+        double width = redDuck.getWidth()*scale;
+        double height = redDuck.getHeight()*scale;
+        Image[] redDuckImages = new Image[redDuckImagesFlying.length];
+        for (int i = 0; i < redDuckImagesFlying.length; i++) {
+            redDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(redDuckImagesFlying[i])));
+        }
+        redDuckImageView.setFitWidth(width);
+        redDuckImageView.setFitHeight(height);
+        redDuckImageView.setTranslateX(-width * scale);
+        redDuckImageView.setTranslateY(0*scale);
+        redDuckImageView.setScaleX(1);
+        redDuckImageView.setScaleY(1);
+        String[] blackDuckImagesFlying = {"assets/duck_black/1.png", "assets/duck_black/2.png", "assets/duck_black/3.png"};
+        Image[] blackDuckImages = new Image[blackDuckImagesFlying.length];
+        for (int i = 0; i < blackDuckImagesFlying.length; i++) {
+            blackDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(blackDuckImagesFlying[i])));
+        }
+        blackDuckImageView.setFitWidth(width);
+        blackDuckImageView.setFitHeight(height);
+        blackDuckImageView.setTranslateX(-width * scale);
+        blackDuckImageView.setTranslateY(-67*scale);
+        blackDuckImageView.setScaleX(1);
+        blackDuckImageView.setScaleY(1);
+        String[] blueDuckImagesFlying = {"assets/duck_blue/1.png", "assets/duck_blue/2.png", "assets/duck_blue/3.png"};
+        Image[] blueDuckImages = new Image[blueDuckImagesFlying.length];
+        for (int i = 0; i < blueDuckImagesFlying.length; i++) {
+            blueDuckImages[i] = new Image(Objects.requireNonNull(gameSceneClass.class.getResourceAsStream(blueDuckImagesFlying[i])));
+        }
+        blueDuckImageView.setFitWidth(width);
+        blueDuckImageView.setFitHeight(height);
+        blueDuckImageView.setTranslateX(width * scale);
+        blueDuckImageView.setTranslateY(-10*scale);
+        blueDuckImageView.setScaleX(1);
+        blueDuckImageView.setScaleY(1);
+        final int[] red_currentImageIndex = {0};
+        final int[] blue_currentImageIndex = {0};
+        final int[] black_currentImageIndex = {0};
+        red_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            redDuckImageView.setImage(redDuckImages[red_currentImageIndex[0]]);
+            red_currentImageIndex[0] = (red_currentImageIndex[0] + 1) % redDuckImagesFlying.length;
+            double red_initialX = -width * scale;
+            double red_finalX = width * scale;
+            double red_initialY = -height * scale;
+            double red_finalY = height * scale;
+            double unitMove = 8*scale;
+            double red_currentX = redDuckImageView.getTranslateX();
+            double red_currentY = redDuckImageView.getTranslateY();
+            double red_newX = red_currentX + unitMove;
+            double red_newY = red_currentY + unitMove;
+            redDuckImageView.setScaleY(-1);
+            if (red_newY <= red_finalY && !red_duckIsFlipped_y) {
+                redDuckImageView.setTranslateY(red_newY);
+            } else {
+                red_duckIsFlipped_y = true;
+                red_newY = red_currentY - unitMove;
+                redDuckImageView.setScaleY(1);
+                redDuckImageView.setTranslateY(red_newY);
+                if (red_currentY < red_initialY) {
+                    redDuckImageView.setScaleY(-1);
+                    red_duckIsFlipped_y = false;
+                    redDuckImageView.setTranslateY(red_initialY);
+                }
+            }
+            if (red_newX <= red_finalX && !red_duckIsFlipped_x) {
+                redDuckImageView.setTranslateX(red_newX);
+            } else {
+                red_duckIsFlipped_x = true;
+                red_newX = red_currentX - unitMove;
+                redDuckImageView.setScaleX(-1);
+                redDuckImageView.setTranslateX(red_newX);
+                if (red_currentX < red_initialX) {
+                    redDuckImageView.setScaleX(1);
+                    red_duckIsFlipped_x = false;
+                    redDuckImageView.setTranslateX(red_initialX);
+                }
+            }
+        })
+        );
+        black_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blackDuckImageView.setImage(blackDuckImages[black_currentImageIndex[0]]);
+            black_currentImageIndex[0] = (black_currentImageIndex[0] + 1) % blackDuckImagesFlying.length;
+            double black_initialX = -width * scale;
+            double black_finalX = width * scale;
+            double black_initialY = height * scale;
+            double black_finalY = -height * scale;
+            double unitMove = 8*scale;
+            double black_currentX = blackDuckImageView.getTranslateX();
+            double black_currentY = blackDuckImageView.getTranslateY();
+            double black_newX = black_currentX + unitMove;
+            double black_newY = black_currentY - unitMove;
+            if (black_newY >= black_finalY && !black_duckIsFlipped_y) {
+                blackDuckImageView.setTranslateY(black_newY);
+            } else {
+                black_duckIsFlipped_y = true;
+                black_newY = black_currentY + unitMove;
+                blackDuckImageView.setScaleY(-1);
+                blackDuckImageView.setTranslateY(black_newY);
+                if (black_currentY > black_initialY) {
+                    blackDuckImageView.setScaleY(1);
+                    black_duckIsFlipped_y = false;
+                    blackDuckImageView.setTranslateY(black_initialY);
+                }
+            }
+            if (black_newX <= black_finalX && !black_duckIsFlipped_x) {
+                blackDuckImageView.setTranslateX(black_newX);
+            } else {
+                black_duckIsFlipped_x = true;
+                black_newX = black_currentX - unitMove;
+                blackDuckImageView.setScaleX(-1);
+                blackDuckImageView.setTranslateX(black_newX);
+                if (black_currentX < black_initialX) {
+                    blackDuckImageView.setScaleX(1);
+                    black_duckIsFlipped_x = false;
+                    blackDuckImageView.setTranslateX(black_initialX);
+                }
+            }
+        })
+        );
+        blue_flyingTimeline = new Timeline(new KeyFrame(Duration.millis(200), event -> {
+            blueDuckImageView.setImage(blueDuckImages[blue_currentImageIndex[0]]);
+            blue_currentImageIndex[0] = (blue_currentImageIndex[0] + 1) % blueDuckImagesFlying.length;
+            double blue_initialX = width * scale;
+            double blue_finalX = -width * scale;
+            double blue_initialY = height * scale;
+            double blue_finalY = -height * scale;
+            double unitMove = 8*scale;
+            double blue_currentX = blueDuckImageView.getTranslateX();
+            double blue_currentY = blueDuckImageView.getTranslateY();
+            double blue_newX = blue_currentX - unitMove;
+            double blue_newY = blue_currentY - unitMove;
+            blueDuckImageView.setScaleX(-1);
+            if (blue_newY >= blue_finalY && !blue_duckIsFlipped_y) {
+                blueDuckImageView.setTranslateY(blue_newY);
+            } else {
+                blue_duckIsFlipped_y = true;
+                blue_newY = blue_currentY + unitMove;
+                blueDuckImageView.setScaleY(-1);
+                blueDuckImageView.setTranslateY(blue_newY);
+                if (blue_currentY > blue_initialY) {
+                    blueDuckImageView.setScaleY(1);
+                    blue_duckIsFlipped_y = false;
+                    blueDuckImageView.setTranslateY(blue_initialY);
+                }
+            }
+            if (blue_newX >= blue_finalX && !blue_duckIsFlipped_x) {
+                blueDuckImageView.setTranslateX(blue_newX);
+            } else {
+                blue_duckIsFlipped_x = true;
+                blue_newX = blue_currentX + unitMove;
+                blueDuckImageView.setScaleX(1);
+                blueDuckImageView.setTranslateX(blue_newX);
+                if (blue_currentX > blue_initialX) {
+                    blueDuckImageView.setScaleX(-1);
+                    blue_duckIsFlipped_x = false;
+                    blueDuckImageView.setTranslateX(blue_initialX);
+                }
+            }
+        })
+        );
+        black_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        blue_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        red_flyingTimeline.setCycleCount(Animation.INDEFINITE);
+        black_flyingTimeline.play();
+        blue_flyingTimeline.play();
+        red_flyingTimeline.play();
+        if(black_fallingTimeline!=null){
+            black_fallingTimeline.stop();
+        }if(blue_fallingTimeline!=null){
+            blue_fallingTimeline.stop();
+        }if(red_fallingTimeline!=null){
+            red_fallingTimeline.stop();
+        }
+        levelSix.getChildren().clear();
+        levelSix.getChildren().addAll(bulletMediaView, ammoVbox, levelVbox, blackDuckImageView, blueDuckImageView,
+                redDuckImageView, menuClass.foreground);
+        gameWon = false;
+        gameOver = false;
+        black_duckIsFlipped_y=false;
+        blue_duckIsFlipped_y=false;
+        red_duckIsFlipped_y=false;
+        black_duckIsFlipped_x=false;
+        blue_duckIsFlipped_x=false;
+        red_duckIsFlipped_x=false;
+        return levelSix;
+    }
+    public void start(Stage primaryStage, Scene levelSixScene, double scale, StackPane levelSix){
+        VBox gOverVbox1 = new VBox(), gOverVbox2 = new VBox();
+        levelSixScene.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                if (!gameOver && !gameWon && duck!=0) {
+                    bulletMedia.stop();
+                    bulletMedia.setVolume(DuckHunt.VOLUME);
+                    bulletMedia.play();
+                    ammo--;
+                    ammoText.setText("Ammo Left: " + ammo);
+                    double bulletX = event.getX();
+                    double bulletY = event.getY();
+                    Bounds boundsInParentBlackDuck = blackDuckImageView.getBoundsInParent();
+                    double black_xMin = boundsInParentBlackDuck.getMinX();
+                    double black_xMax = boundsInParentBlackDuck.getMaxX();
+                    double black_yMax = boundsInParentBlackDuck.getMaxY();
+                    double black_yMin = boundsInParentBlackDuck.getMinY();
+                    if (bulletX <= black_xMax && black_xMin <= bulletX && bulletY <= black_yMax && black_yMin <= bulletY){
+                        duck--;
+                        black_flyingTimeline.stop();
+                        ImageView shotDuckBlack = new ImageView("assets/duck_black/7.png");
+                        ImageView fallingDuckBlack = new ImageView("assets/duck_black/8.png");
+                        if (black_duckIsFlipped_x){
+                            shotDuckBlack.setScaleX(-1);
+                            fallingDuckBlack.setScaleX(-1);
+                        }
+                        blackDuckImageView.setScaleY(1);
+                        blackDuckImageView.setImage(shotDuckBlack.getImage());
+                        Timeline black_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blackDuckImageView.setImage(fallingDuckBlack.getImage());
+                        }));
+                        black_shotImageChange.play();
+                        black_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            black_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double black_currentY = blackDuckImageView.getTranslateY();
+                                double black_newY = black_currentY + unitMove;
+                                blackDuckImageView.setTranslateY(black_newY);
+                            }));
+                            black_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            black_fallingTimeline.play();
+                            black_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }
+                    Bounds boundsInParentBlueDuck = blueDuckImageView.getBoundsInParent();
+                    double blue_xMin = boundsInParentBlueDuck.getMinX();
+                    double blue_xMax = boundsInParentBlueDuck.getMaxX();
+                    double blue_yMax = boundsInParentBlueDuck.getMaxY();
+                    double blue_yMin = boundsInParentBlueDuck.getMinY();
+                    if (bulletX <= blue_xMax && blue_xMin <= bulletX && bulletY <= blue_yMax && blue_yMin <= bulletY) {
+                        duck--;
+                        blue_flyingTimeline.stop();
+                        ImageView shotDuckBlue = new ImageView("assets/duck_blue/7.png");
+                        ImageView fallingDuckBlue = new ImageView("assets/duck_blue/8.png");
+                        if (blue_duckIsFlipped_x) {
+                            shotDuckBlue.setScaleX(-1);
+                            fallingDuckBlue.setScaleX(-1);
+                        }
+                        blueDuckImageView.setScaleY(1);
+                        blueDuckImageView.setImage(shotDuckBlue.getImage());
+                        Timeline blue_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            blueDuckImageView.setImage(fallingDuckBlue.getImage());
+                        }));
+                        blue_shotImageChange.play();
+                        blue_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            blue_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = blueDuckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                blueDuckImageView.setTranslateY(newY);
+                            }));
+                            blue_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            blue_fallingTimeline.play();
+                            blue_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }
+                    Bounds boundsInParentRedDuck = redDuckImageView.getBoundsInParent();
+                    double red_xMin = boundsInParentRedDuck.getMinX();
+                    double red_xMax = boundsInParentRedDuck.getMaxX();
+                    double red_yMax = boundsInParentRedDuck.getMaxY();
+                    double red_yMin = boundsInParentRedDuck.getMinY();
+                    if (bulletX <= red_xMax && red_xMin <= bulletX && bulletY <= red_yMax && red_yMin <= bulletY) {
+                        duck--;
+                        red_flyingTimeline.stop();
+                        ImageView shotDuckRed = new ImageView("assets/duck_red/7.png");
+                        ImageView fallingDuckRed = new ImageView("assets/duck_red/8.png");
+                        if (red_duckIsFlipped_x) {
+                            shotDuckRed.setScaleX(-1);
+                            fallingDuckRed.setScaleX(-1);
+                        }
+                        redDuckImageView.setScaleY(1);
+                        redDuckImageView.setImage(shotDuckRed.getImage());
+                        Timeline red_shotImageChange = new Timeline(new KeyFrame(Duration.seconds(0.5), event2 -> {
+                            redDuckImageView.setImage(fallingDuckRed.getImage());
+                        }));
+                        red_shotImageChange.play();
+                        red_shotImageChange.setOnFinished(event1 -> {
+                            fallingMedia.stop();
+                            fallingMedia.setVolume(DuckHunt.VOLUME);
+                            fallingMedia.play();
+                            red_fallingTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event2 -> {
+                                double unitMove = 8*scale;
+                                final double currentY = redDuckImageView.getTranslateY();
+                                double newY = currentY + unitMove;
+                                redDuckImageView.setTranslateY(newY);
+                            }));
+                            red_fallingTimeline.setCycleCount(Animation.INDEFINITE);
+                            red_fallingTimeline.play();
+                            red_fallingTimeline.setOnFinished(event2 -> {
+                                fallingMedia.stop();
+                            });
+                        });
+                    }
+                    if (duck==0){
+                        gameWon = true;
+                        Text success = new Text(0, 0, "You have completed the game!\n\n");
+                        success.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        success.setFill(Color.ORANGE);
+                        Text success2 = new Text(0, 0, "\nPress ENTER to play again\nPress ESC to exit");
+                        success2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                        success2.setFill(Color.ORANGE);
+                        success2.setTextAlignment(TextAlignment.CENTER);
+                        VBox successVbox1= new VBox();
+                        successVbox1.setAlignment(Pos.CENTER);
+                        VBox successVbox2= new VBox();
+                        successVbox2.setAlignment(Pos.CENTER);
+                        successVbox1.getChildren().addAll(success);
+                        successVbox2.getChildren().addAll(success2);
+                        Timeline flashingTimeline = new Timeline(
+                                new KeyFrame(Duration.seconds(0.5), evt -> success2.setVisible(true)),
+                                new KeyFrame(Duration.seconds(1.0), evt -> success2.setVisible(false))
+                        );
+                        flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                        flashingTimeline.play();
+                        levelSix.getChildren().removeAll(successVbox1, successVbox2);
+                        levelSix.getChildren().addAll(successVbox1, successVbox2);
+                        successMedia.setVolume(DuckHunt.VOLUME);
+                        successMedia.play();
+                    }
+                }
+                if (ammo == 0 && !gameWon && duck!=0) {
+                    gameOver = true;
+                    gOverVbox1.getChildren().clear();
+                    gOverVbox2.getChildren().clear();
+                    gOverText1 = new Text(0, 0, "GAME OVER!\n\n");
+                    gOverText1.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText1.setFill(Color.ORANGE);
+                    gOverText2 = new Text(0, 0, "\nPress ENTER to play again\nPress ESC to exit");
+                    gOverText2.setFont(Font.font("Arial", FontWeight.BOLD, 10*scale));
+                    gOverText2.setFill(Color.ORANGE);
+                    gOverText2.setTextAlignment(TextAlignment.CENTER);
+                    gOverVbox1.setAlignment(Pos.CENTER);
+                    gOverVbox2.setAlignment(Pos.CENTER);
+                    gOverVbox1.getChildren().addAll(gOverText1);
+                    gOverVbox2.getChildren().addAll(gOverText2);
+                    Timeline flashingTimeline = new Timeline(
+                            new KeyFrame(Duration.seconds(0.5), evt -> gOverText2.setVisible(true)),
+                            new KeyFrame(Duration.seconds(1.0), evt -> gOverText2.setVisible(false))
+                    );
+                    flashingTimeline.setCycleCount(Animation.INDEFINITE);
+                    flashingTimeline.play();
+                    levelSix.getChildren().removeAll(gOverVbox1, gOverVbox2);
+                    levelSix.getChildren().addAll(gOverVbox1, gOverVbox2);
+                    gOverMedia.setVolume(DuckHunt.VOLUME);
+                    gOverMedia.play();
+                }
+            }
+        });
+        levelSixScene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                switch (event.getCode()) {
+                    case ENTER:
+                        successMedia.stop();
+                        if (gameOver){
+                            gameOver = false;
+                            duck = 3;
+                            ammo = duck*3;
+                            blue_fallingTimeline.stop();
+                            black_fallingTimeline.stop();
+                            red_fallingTimeline.stop();
+                            blue_flyingTimeline.stop();
+                            black_flyingTimeline.stop();
+                            red_flyingTimeline.stop();
+                            ammoText.setText("Ammo Left: " + ammo);
+                            StackPane tempStackPane = levelSixSetter(scale);
+                            Scene tempScene = new Scene(tempStackPane, DuckHunt.width*scale, DuckHunt.height*scale);
+                            tempScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                            primaryStage.setScene(tempScene);
+                            levelSixClass levSixScene = new levelSixClass();
+                            levSixScene.start(primaryStage, tempScene, scale, tempStackPane);
+                        }else if (gameWon){
+                            black_fallingTimeline.stop();
+                            blue_fallingTimeline.stop();
+                            red_fallingTimeline.stop();
+                            StackPane root = gameSceneClass.gameSetter(scale);
+                            Scene gameScene = new Scene(root, DuckHunt.width*scale, DuckHunt.height*scale);
+                            gameScene.setCursor(new ImageCursor(menuClass.selectedCursor));
+                            primaryStage.setScene(gameScene);
+                            gameSceneClass gameScene1 = new gameSceneClass();
+                            gameScene1.start(primaryStage, gameScene, scale, root);
+                            break;
+                        }
+                        break;
+                    case ESCAPE:
+                        successMedia.stop();
+                        StackPane titleRoot = titleClass.titleSetter(scale);
+                        Scene titleScene = new Scene(titleRoot, DuckHunt.width*scale, DuckHunt.height*scale);
+                        titleScene.setCursor(Cursor.DEFAULT);
+                        primaryStage.setScene(titleScene);
+                        titleClass titleScn = new titleClass();
+                        titleScn.start(primaryStage, titleScene, scale);
+                        break;
+                }
+            }
+        });
+    }
+}
