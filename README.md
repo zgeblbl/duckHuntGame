@@ -5,7 +5,8 @@
 Welcome to the Duck Hunt inspired 6-level game repository! This project provides a user interface for a 2d javaFX game, offering a set of customizable backgrounds and crosshairs to enhance the gaming experience.
 
 ## Gameplay
-![image](https://github.com/zgeblbl/duckHuntGame/assets/117914215/7649b20e-cb20-4b6f-905c-e00a7b48a3a0)
+https://github.com/zgeblbl/duckHuntGame/assets/117914215/2884abcc-5334-4294-913a-e52469a349f2
+
 
 
 ## Features
