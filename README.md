@@ -9,3 +9,4 @@ Welcome to the Duck Hunt inspired 5-level game repository! This project provides
 - There are 5 levels with different types and amoounts of ducks.
 - There are 3 types of ducks, two of which fly on the x axis whereas the third flies diagonally as well.
 - After level 5, player may restart or quit game.
+![image](https://github.com/zgeblbl/duckHuntGame/assets/117914215/e2f04f86-2ed4-4686-a679-ad5967bd4161)
